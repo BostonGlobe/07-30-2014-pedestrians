@@ -1,0 +1,13 @@
+.sass-cache
+.tmp
+node_modules
+PROD.jpt
+bitbucket.sh
+index.html
+globegraphic.sublime-workspace
+js/templates/templates.js
+css/main.scss
+js/libs/
+data/07-30-2014-pedestrians.html
+data/07-30-2014-pedestrians_files
+.Rhistory
