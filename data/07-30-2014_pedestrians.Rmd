@@ -8,6 +8,43 @@ output:
 
 ```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 setwd("~/Documents/dev/07-30-2014_pedestrians/data")
+
+library(RColorBrewer)
+library(rgdal)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+
+crashes.shp <- readOGR('private/shp','pedestriancrashes',p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
+tracts.shp <- readOGR('downloaded','cb_2013_25_tract_500k',p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
+state.shp <- readOGR('downloaded','cb_2013_ma_state_20m',p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
+
+tracts <- fortify(tracts.shp,region='GEOID')
+state <- fortify(state.shp,region='GEOID')
+
+crashesInTracts <- over(crashes.shp, tracts.shp) %>%
+  group_by(GEOID) %>%
+  summarise(count = n()) %>%
+  filter(!is.na(GEOID)) %>%
+  arrange(desc(count))
+```
+
+Let's explore the question: where are pedestrian crashes happening?
+
+```{r, echo=FALSE, fig.width=12, fig.height=7}
+ggplot() +
+  geom_map(data=crashesInTracts,aes(map_id=GEOID,fill=count),map=tracts) +
+  geom_path(data=state,aes(long,lat,group=group),colour='black',size=0.125) +
+  coord_map() +
+  scale_fill_gradientn(name='Crashes',colours=brewer.pal(9,'Blues')) +
+  ggtitle('Pedestrian crashes by census tract') +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    axis.title = element_blank()
+  )
 ```
 
 ```{r, echo=FALSE, fig.width=12, fig.height=7}

@@ -4,6 +4,11 @@ This graphic was generated with [generator-globegraphic](https://github.com/Bost
 
 Please note: do not reproduce Boston Globe logos or fonts without written permission.
 
+## Notes
+
+- is the pedestrian crash data available online?
+- if not, should we check it in?
+
 ## Install
 
 - `npm install`

@@ -8,7 +8,8 @@ globegraphic.sublime-workspace
 js/templates/templates.js
 css/main.scss
 js/libs/
+data/downloaded
 data/private
-data/07-30-2014-pedestrians.html
-data/07-30-2014-pedestrians_files
+data/07-30-2014_pedestrians.html
+data/07-30-2014_pedestrians_files
 .Rhistory
