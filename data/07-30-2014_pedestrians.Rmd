@@ -17,7 +17,7 @@ library(ggplot2)
 
 crashes.shp <- readOGR('private/shp','pedestriancrashes',p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
 tracts.shp <- readOGR('downloaded','cb_2013_25_tract_500k',p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
-state.shp <- readOGR('downloaded','cb_2013_ma_state_20m',p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
+state.shp <- readOGR('downloaded','cb_2013_ma_state_500k',p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
 
 tracts <- fortify(tracts.shp,region='GEOID')
 state <- fortify(state.shp,region='GEOID')
