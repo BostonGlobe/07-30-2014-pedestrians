@@ -9,34 +9,92 @@ output:
 ```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 setwd("~/Documents/dev/07-30-2014_pedestrians/data")
 
+# Multiple plot function
+#
+# ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
+# - cols:   Number of columns in layout
+# - layout: A matrix specifying the layout. If present, 'cols' is ignored.
+#
+# If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
+# then plot 1 will go in the upper left, 2 will go in the upper right, and
+# 3 will go all the way across the bottom.
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  require(grid)
+
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+
+  numPlots = length(plots)
+
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                    ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+
+ if (numPlots==1) {
+    print(plots[[1]])
+
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+
 library(RColorBrewer)
 library(rgdal)
+library(rgeos)
 library(tidyr)
 library(dplyr)
+library(ggmap)
 library(ggplot2)
 
 crashes.shp <- readOGR('private/shp','pedestriancrashes',p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
 tracts.shp <- readOGR('downloaded','cb_2013_25_tract_500k',p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
 state.shp <- readOGR('downloaded','cb_2013_ma_state_500k',p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
 
-tracts <- fortify(tracts.shp,region='GEOID')
-state <- fortify(state.shp,region='GEOID')
-
 crashesInTracts <- over(crashes.shp, tracts.shp) %>%
   group_by(GEOID) %>%
-  summarise(count = n()) %>%
-  filter(!is.na(GEOID)) %>%
-  arrange(desc(count))
+  summarise(crashes = n()) %>%
+  arrange(desc(crashes))
+
+tracts.shp@data <- cbind(
+  gCentroid(tracts.shp,byid=T)@coords,
+  tracts.shp@data) %>%
+  left_join(crashesInTracts,by='GEOID')
+  
+tracts <- fortify(tracts.shp,region='GEOID') %>%
+  mutate(GEOID=id) %>%
+  left_join(tracts.shp@data,by='GEOID')
+state <- fortify(state.shp,region='GEOID')
 ```
 
 Let's explore the question: where are pedestrian crashes happening?
 
 ```{r, echo=FALSE, fig.width=12, fig.height=7}
+
+data <- tracts.shp@data %>%
+  filter(!is.na(crashes))
+
 ggplot() +
-  geom_map(data=crashesInTracts,aes(map_id=GEOID,fill=count),map=tracts) +
+  geom_map(data=data,aes(map_id=GEOID,fill=crashes),map=tracts) +
   geom_path(data=state,aes(long,lat,group=group),colour='black',size=0.125) +
   coord_map() +
-  scale_fill_gradientn(name='Crashes',colours=brewer.pal(9,'Blues')) +
+  scale_fill_gradientn(name='Crashes',colours=brewer.pal(9,'Reds')) +
   ggtitle('Pedestrian crashes by census tract') +
   theme_minimal() +
   theme(
@@ -47,5 +105,90 @@ ggplot() +
   )
 ```
 
+Let's see a list of the ten ten census tracts.
+
 ```{r, echo=FALSE, fig.width=12, fig.height=7}
+
+tracts.shp@data %>%
+  arrange(desc(crashes)) %>%
+  select(GEOID,crashes) %>%
+  head(10)
 ```
+
+***
+
+Where are these census tracts?
+
+```{r, echo=FALSE, fig.width=12, fig.height=24, warning=FALSE, message=FALSE}
+
+data <- tracts.shp@data %>%
+  arrange(desc(crashes))
+
+crashPoints <- as.data.frame(crashes.shp@coords) %>%
+  mutate(long=coords.x1,lat=coords.x2) %>% select(-coords.x1,-coords.x2) %>%
+  group_by(long,lat) %>%
+  summarise(count=n()) %>%
+  arrange(desc(count))
+
+map1 <- ggmap(get_map(location=c(lon=data[1,]$x,lat=data[1,]$y),zoom=15)) +
+  geom_polygon(data=tracts, aes(x=long, y=lat, group=group, fill=crashes), colour='NA', alpha=0.65)+
+  geom_point(data=crashPoints,aes(x=long,y=lat,size=count)) +
+  scale_size_area(max_size=40) +
+  scale_fill_gradientn(name='Pedestrian crashes',colours=brewer.pal(9,'Reds')) +
+  theme_nothing()
+
+map2 <- ggmap(get_map(location=c(lon=data[2,]$x,lat=data[2,]$y),zoom=15)) +
+  geom_polygon(data=tracts, aes(x=long, y=lat, group=group, fill=crashes), colour='NA', alpha=0.65)+
+  geom_point(data=crashPoints,aes(x=long,y=lat,size=count)) +
+  scale_size_area(max_size=40) +
+  scale_fill_gradientn(name='Pedestrian crashes',colours=brewer.pal(9,'Reds')) +
+  theme_nothing()
+
+map3 <- ggmap(get_map(location=c(lon=data[3,]$x,lat=data[3,]$y),zoom=15)) +
+  geom_polygon(data=tracts, aes(x=long, y=lat, group=group, fill=crashes), colour='NA', alpha=0.65)+
+  geom_point(data=crashPoints,aes(x=long,y=lat,size=count)) +
+  scale_size_area(max_size=40) +
+  scale_fill_gradientn(name='Pedestrian crashes',colours=brewer.pal(9,'Reds')) +
+  theme_nothing()
+
+map4 <- ggmap(get_map(location=c(lon=data[4,]$x,lat=data[4,]$y),zoom=15)) +
+  geom_polygon(data=tracts, aes(x=long, y=lat, group=group, fill=crashes), colour='NA', alpha=0.65)+
+  geom_point(data=crashPoints,aes(x=long,y=lat,size=count)) +
+  scale_size_area(max_size=40) +
+  scale_fill_gradientn(name='Pedestrian crashes',colours=brewer.pal(9,'Reds')) +
+  theme_nothing()
+
+map5 <- ggmap(get_map(location=c(lon=data[5,]$x,lat=data[5,]$y),zoom=15)) +
+  geom_polygon(data=tracts, aes(x=long, y=lat, group=group, fill=crashes), colour='NA', alpha=0.65)+
+  geom_point(data=crashPoints,aes(x=long,y=lat,size=count)) +
+  scale_size_area(max_size=40) +
+  scale_fill_gradientn(name='Pedestrian crashes',colours=brewer.pal(9,'Reds')) +
+  theme_nothing()
+
+map6 <- ggmap(get_map(location=c(lon=data[6,]$x,lat=data[6,]$y),zoom=15)) +
+  geom_polygon(data=tracts, aes(x=long, y=lat, group=group, fill=crashes), colour='NA', alpha=0.65)+
+  geom_point(data=crashPoints,aes(x=long,y=lat,size=count)) +
+  scale_size_area(max_size=40) +
+  scale_fill_gradientn(name='Pedestrian crashes',colours=brewer.pal(9,'Reds')) +
+  theme_nothing()
+
+map7 <- ggmap(get_map(location=c(lon=data[7,]$x,lat=data[7,]$y),zoom=15)) +
+  geom_polygon(data=tracts, aes(x=long, y=lat, group=group, fill=crashes), colour='NA', alpha=0.65)+
+  geom_point(data=crashPoints,aes(x=long,y=lat,size=count)) +
+  scale_size_area(max_size=40) +
+  scale_fill_gradientn(name='Pedestrian crashes',colours=brewer.pal(9,'Reds')) +
+  theme_nothing()
+
+map8 <- ggmap(get_map(location=c(lon=data[8,]$x,lat=data[8,]$y),zoom=15)) +
+  geom_polygon(data=tracts, aes(x=long, y=lat, group=group, fill=crashes), colour='NA', alpha=0.65)+
+  geom_point(data=crashPoints,aes(x=long,y=lat,size=count)) +
+  scale_size_area(max_size=40) +
+  scale_fill_gradientn(name='Pedestrian crashes',colours=brewer.pal(9,'Reds')) +
+  theme_nothing()
+
+multiplot(map1, map2, map3, map4, map5, map6, map7, map8, cols=2)
+```
+
+***
+
+No surprises here.
