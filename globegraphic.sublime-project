@@ -8,7 +8,8 @@
 				".tmp",
 				".sass-cache",
 				"node_modules",
-				"parts"
+				"parts",
+				"07-30-2014_pedestrians_files"
 			],
 			"file_exclude_patterns": [
 				".Rhistory",
@@ -23,7 +24,9 @@
 				"LICENSE.md",
 				".jshintignore",
 				".jshintrc",
-				"package.json"
+				"package.json",
+				"ggmapTemp.png",
+				"07-30-2014_pedestrians.html"
 			]
 		}
 	]

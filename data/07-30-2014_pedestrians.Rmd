@@ -292,10 +292,33 @@ What are vehicles doing prior to the crash?
 
 data <- crashes.shp@data %>%
   group_by(Vehicle.Ac) %>%
-  summarise(count = sum(Vehicle.Ac)) %>%
+  summarise(count = n()) %>%
   arrange(desc(count))
 
 data
 ```
 
 No patterns here.
+
+***
+
+It would be great if we had more years than just 2010-2012. Fortunately for us, MassDOT's "Crash Portal" does just that. Let's look at all pedestrian crashes over time:
+
+```{r, echo=FALSE, fig.width=12, fig.height=7, warning=FALSE, message=FALSE}
+
+allcrashes <- read.csv('private/allcrashes.csv',strip.white=T,stringsAsFactors=F)
+
+data <- allcrashes %>%
+  mutate(DATE = floor_date(mdy(Crash.Date), 'year')) %>%
+  group_by(DATE) %>%
+  summarise(count = n()) %>%
+  filter(year(DATE) < 2015 & year(DATE) >= 2002) %>%
+  arrange(DATE)
+
+ggplot(data, aes(DATE,count)) +
+  geom_line() +
+  ggtitle('Pedestrian crashes, 2002-2012') +
+  xlab('year')
+```
+
+Aha! Pedestrian crashes have increased dramatically since 2009.
