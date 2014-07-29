@@ -55,6 +55,7 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
   }
 }
 
+library(lubridate)
 library(RColorBrewer)
 library(rgdal)
 library(rgeos)
@@ -66,6 +67,9 @@ library(ggplot2)
 crashes.shp <- readOGR('private/shp','pedestriancrashes',p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
 tracts.shp <- readOGR('downloaded','cb_2013_25_tract_500k',p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
 state.shp <- readOGR('downloaded','cb_2013_ma_state_500k',p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
+
+crashes.shp@data <- crashes.shp@data %>%
+  mutate(DATE = dmy(Crash.Date))
 
 crashesInTracts <- over(crashes.shp, tracts.shp) %>%
   group_by(GEOID) %>%
@@ -105,19 +109,9 @@ ggplot() +
   )
 ```
 
-Let's see a list of the ten ten census tracts.
-
-```{r, echo=FALSE, fig.width=12, fig.height=7}
-
-tracts.shp@data %>%
-  arrange(desc(crashes)) %>%
-  select(GEOID,crashes) %>%
-  head(10)
-```
-
 ***
 
-Where are these census tracts?
+Let's look at the ten worst census tracts.
 
 ```{r, echo=FALSE, fig.width=12, fig.height=24, warning=FALSE, message=FALSE}
 
@@ -189,6 +183,119 @@ map8 <- ggmap(get_map(location=c(lon=data[8,]$x,lat=data[8,]$y),zoom=15)) +
 multiplot(map1, map2, map3, map4, map5, map6, map7, map8, cols=2)
 ```
 
+No surprises here - crashes are happening in areas with high pedestrian traffic.
+
 ***
 
-No surprises here.
+Are pedestrian crashes increasing over time?
+
+```{r, echo=FALSE, fig.width=12, fig.height=7, warning=FALSE, message=FALSE}
+
+data <- crashes.shp@data %>%
+  select(DATE) %>%
+  mutate(DATE = floor_date(DATE, 'week')) %>%
+  filter(year(DATE) %in% c(2010,2011,2012)) %>%
+  group_by(DATE) %>%
+  summarise(count = n()) %>%
+  arrange(desc(DATE))
+
+ggplot(data, aes(DATE,count)) +
+  geom_line() +
+  geom_smooth() +
+  ggtitle('Pedestrian crashes, 2010-2012') +
+  xlab('week')
+```
+
+Maybe a little bit - but perhaps the state population is also increasing.
+
+***
+
+What about daily patterns?
+
+```{r, echo=FALSE, fig.width=12, fig.height=7, warning=FALSE, message=FALSE}
+
+data <- crashes.shp@data %>%
+  mutate(HOUR = hour(parse_date_time(Crash.Time, 'I:M p'))) %>%
+  select(Crash.Time, HOUR) %>%
+  group_by(HOUR) %>%
+  summarise(count = n())
+
+ggplot(data, aes(HOUR,count)) +
+  geom_line() +
+  geom_smooth() +
+  ggtitle('Pedestrian crashes per hour, 2010-2012') +
+  xlab('hour')
+```
+
+Crashes peak in the evening, when people are commuting home. No surprises here.
+
+***
+
+What about fatal crashes - are they increasing?
+
+```{r, echo=FALSE, fig.width=12, fig.height=7, warning=FALSE, message=FALSE}
+
+data <- crashes.shp@data %>%
+  mutate(
+    DATE = floor_date(DATE, 'week'),
+    FATALITIES = as.numeric(as.character(Total.Fata))
+  ) %>%
+  filter(
+    year(DATE) %in% c(2010,2011,2012),
+    FATALITIES > 0
+  ) %>%
+  group_by(DATE) %>%
+  summarise(count = sum(FATALITIES)) %>%
+  arrange(desc(DATE))
+
+ggplot(data, aes(DATE,count)) +
+  geom_line() +
+  geom_smooth() +
+  ggtitle('Pedestrian fatalities, 2010-2012') +
+  xlab('week')
+```
+
+Perhaps - but it's tough to see when we group crashes by week.
+
+***
+
+Let's group crashes by year instead:
+
+```{r, echo=FALSE, fig.width=12, fig.height=7, warning=FALSE, message=FALSE}
+
+data <- crashes.shp@data %>%
+  mutate(
+    DATE = floor_date(DATE, 'year'),
+    FATALITIES = as.numeric(as.character(Total.Fata))
+  ) %>%
+  filter(
+    year(DATE) %in% c(2010,2011,2012),
+    FATALITIES > 0
+  ) %>%
+  group_by(DATE) %>%
+  summarise(count = sum(FATALITIES)) %>%
+  arrange(desc(DATE))
+
+ggplot(data, aes(DATE,count)) +
+  geom_line() +
+  ggtitle('Pedestrian fatalities, 2010-2012') +
+  xlab('year')
+```
+
+We don't have enough data to see if fatalities are increasing.
+
+***
+
+What are vehicles doing prior to the crash?
+
+```{r, echo=FALSE, fig.width=12, fig.height=7, warning=FALSE, message=FALSE}
+
+data <- crashes.shp@data %>%
+  group_by(Vehicle.Ac) %>%
+  summarise(count = sum(Vehicle.Ac)) %>%
+  arrange(desc(count))
+
+data
+```
+
+No patterns here.
