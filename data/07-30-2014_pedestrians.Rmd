@@ -192,6 +192,9 @@ Are pedestrian crashes increasing over time?
 ```{r, echo=FALSE, fig.width=12, fig.height=7, warning=FALSE, message=FALSE}
 
 data <- crashes.shp@data %>%
+  filter(as.character(City.Town) == 'BOSTON')
+  
+  
   select(DATE) %>%
   mutate(DATE = floor_date(DATE, 'week')) %>%
   filter(year(DATE) %in% c(2010,2011,2012)) %>%
@@ -313,6 +316,7 @@ data <- allcrashes %>%
   group_by(DATE) %>%
   summarise(count = n()) %>%
   filter(year(DATE) < 2015 & year(DATE) >= 2002) %>%
+  filter(year(DATE) %in% c(2010,2011,2012)) %>%
   arrange(DATE)
 
 ggplot(data, aes(DATE,count)) +
