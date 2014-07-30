@@ -154,9 +154,60 @@ The state's population hasn't increased significantly, hence the rate looks pret
 
 ***
 
-Can we analyse this data to see which towns are working on their reporting? (the answer is maybe - graphs coming)
+Can we analyse this data to see which towns are working on their reporting?
 
-```{r}
+```{r, echo=FALSE, fig.width=12, fig.height=7}
 
+townCrashesPerYear <- crashes %>%
+  mutate(YEAR=year(DATE)) %>%
+  group_by(YEAR,City.Town) %>%
+  summarise(crashes = n())
+
+townCrashesPerYearOrdered <- crashes %>%
+  group_by(City.Town) %>%
+  summarise(crashes=n()) %>%
+  arrange(desc(crashes)) %>%
+  head(5) %>%
+  select(-crashes) %>%
+  left_join(townCrashesPerYear,by='City.Town') %>%
+  mutate(DATE=as.Date(as.yearmon(YEAR))) %>%
+  filter(year(DATE) >= 2002)
+
+ggplot(townCrashesPerYearOrdered,aes(DATE,crashes,group=City.Town)) +
+  geom_line(aes(color=City.Town=='BOSTON')) +
+  geom_text(data=filter(townCrashesPerYearOrdered,YEAR==max(YEAR)),aes(DATE,crashes,label=City.Town),hjust=1,vjust=-0.5,size=3) +
+  ggtitle(str_c('Towns with most pedestrian crashes, ',min(townCrashesPerYearOrdered$YEAR),'-',max(townCrashesPerYearOrdered$YEAR))) +
+  theme(legend.position='none')
 ```
 
+Boston's reporting inconsistency is striking.
+
+***
+
+What about other towns?
+
+```{r, echo=FALSE, fig.width=12, fig.height=12}
+
+townCrashesTotal <- crashes %>%
+  group_by(City.Town) %>%
+  summarise(crashes=n()) %>%
+  filter(crashes>50) %>%
+  select(-crashes)
+
+townCrashesPerYearOrdered <- townCrashesTotal %>%
+  left_join(townCrashesPerYear,by='City.Town') %>%
+  mutate(DATE=as.Date(as.yearmon(YEAR))) %>%
+  filter(year(DATE) >= 2002)
+
+ggplot(townCrashesPerYearOrdered,aes(DATE,crashes,group=City.Town)) +
+  geom_line() +
+  ggtitle(str_c('Pedestrian crashes in towns with greater than 50 crashes in period ',min(townCrashesPerYearOrdered$YEAR),'-',max(townCrashesPerYearOrdered$YEAR),'. Y-scale is relative to each town.')) +
+  facet_wrap(~City.Town,scales='free',ncol=8) +
+  theme(
+    axis.ticks=element_blank(),
+    axis.text=element_blank(),
+    panel.grid = element_blank()
+  )
+```
+
+It seems that Barnstable and Springfield didn't report pedestrian accidents prior to 2010.
