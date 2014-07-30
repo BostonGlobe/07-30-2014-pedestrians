@@ -96,13 +96,36 @@ tracts <- tracts.shp@data %>%
 
 # create towns dataframe
 # add town centroids
+# add town boundaries
 # add total crashes per town
 towns <- towns.shp@data %>%
   cbind(gCentroid(towns.shp,byid=T)@coords) %>%
+  cbind(fortify(gEnvelope(towns.shp,byid=T)) %>%
+          mutate(id=as.numeric(id)) %>%
+          group_by(id) %>%
+          summarise(
+            E=min(long),
+            W=max(long),
+            S=min(lat),
+            N=max(lat)
+          ) %>%
+          arrange(id)) %>%
   left_join(yearlyCrashesPerTown %>%
               group_by(City.Town) %>%
               summarise(crashes = sum(crashes)) %>%
               mutate(TOWN=City.Town) %>% select(-City.Town),by='TOWN')
+
+state <- state.shp@data %>%
+  cbind(fortify(gEnvelope(state.shp,byid=T)) %>%
+          mutate(id=as.numeric(id)) %>%
+          group_by(id) %>%
+          summarise(
+            E=min(long),
+            W=max(long),
+            S=min(lat),
+            N=max(lat)
+          ) %>%
+          arrange(id))
   
 # fortify for mapping purposes
 tracts.fortified <- fortify(tracts.shp,region='GEOID')
@@ -172,12 +195,10 @@ Can we analyse this data to see which towns are working on their reporting?
 
 ```{r, echo=FALSE, fig.width=12, fig.height=7}
 
-data <- crashes %>%
-  group_by(City.Town) %>%
-  summarise(crashes=n()) %>%
+data <- towns %>%
   arrange(desc(crashes)) %>%
   head(5) %>%
-  select(-crashes) %>%
+  select(City.Town=TOWN) %>%
   left_join(yearlyCrashesPerTown,by='City.Town') %>%
   mutate(DATE=as.Date(as.yearmon(YEAR))) %>%
   filter(year(DATE) >= 2002)
@@ -197,21 +218,17 @@ What about other towns?
 
 ```{r, echo=FALSE, fig.width=12, fig.height=12}
 
-townCrashesTotal <- crashes %>%
-  group_by(City.Town) %>%
-  summarise(crashes=n()) %>%
+data <- towns %>%
   filter(crashes>50) %>%
-  arrange(desc(crashes))
-
-townCrashesPerYearOrdered <- townCrashesTotal %>%
-  select(-crashes) %>%
-  left_join(townCrashesPerYear,by='City.Town') %>%
+  arrange(desc(crashes)) %>%
+  select(City.Town=TOWN) %>%
+  left_join(yearlyCrashesPerTown,by='City.Town') %>%
   mutate(DATE=as.Date(as.yearmon(YEAR))) %>%
   filter(year(DATE) >= 2002)
 
-ggplot(townCrashesPerYearOrdered,aes(DATE,crashes,group=City.Town)) +
+ggplot(data,aes(DATE,crashes,group=City.Town)) +
   geom_line() +
-  ggtitle(str_c('Pedestrian crashes in towns with greater than 50 crashes in period ',min(townCrashesPerYearOrdered$YEAR),'-',max(townCrashesPerYearOrdered$YEAR),'. Y-scale is relative to each town.')) +
+  ggtitle(str_c('Pedestrian crashes in towns with greater than 50 crashes in period ',min(data$YEAR),'-',max(data$YEAR),'. Y-scale is relative to each town.')) +
   facet_wrap(~City.Town,scales='free',ncol=8) +
   theme(
     axis.ticks=element_blank(),
@@ -222,18 +239,74 @@ ggplot(townCrashesPerYearOrdered,aes(DATE,crashes,group=City.Town)) +
 
 It seems that Barnstable and Springfield didn't report pedestrian accidents prior to 2010.
 
-```{r}
+***
 
-data <- townCrashesTotal 
+Let's look at the top five towns over time.
 
-map <- get_map(location=c(lon=,lat=),zoom=15)
+```{r, echo=FALSE, fig.width=12, fig.height=14, warning=FALSE, message=FALSE}
 
-ggplot() +
-  geom_map()
+data_towns <- towns %>%
+  arrange(desc(crashes))
 
+data_crashes <- crashes %>%
+  mutate(YEAR=year(DATE)) %>%
+  group_by(coords.x1,coords.x2,YEAR) %>%
+  summarise(crashes=n()) %>%
+  filter(coords.x2 >= state$S & coords.x2 <= state$N) %>%
+  arrange(desc(crashes))
 
+ggmap(get_map(location=str_c(data_towns[1,]$TOWN,', MA'),zoom=12,maptype='roadmap')) +
+  geom_point(data=data_crashes,aes(x=coords.x1,y=coords.x2,group=YEAR,size=crashes)) +
+  geom_path(data=filter(towns.fortified,id==data_towns[1,]$TOWN),aes(x=long,y=lat,group=group),size=0.25) +
+  facet_wrap(~YEAR,nrow=4) +
+  ggtitle(str_c('Pedestrian crashes in ',data_towns[1,]$TOWN)) +
+  theme(
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    axis.title = element_blank()
+  )
+
+ggmap(get_map(location=str_c(data_towns[2,]$TOWN,', MA'),zoom=12,maptype='roadmap')) +
+  geom_point(data=data_crashes,aes(x=coords.x1,y=coords.x2,group=YEAR,size=crashes)) +
+  geom_path(data=filter(towns.fortified,id==data_towns[2,]$TOWN),aes(x=long,y=lat,group=group),size=0.25) +
+  facet_wrap(~YEAR,nrow=4) +
+  ggtitle(str_c('Pedestrian crashes in ',data_towns[2,]$TOWN)) +
+  theme(
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    axis.title = element_blank()
+  )
+
+ggmap(get_map(location=str_c(data_towns[3,]$TOWN,', MA'),zoom=12,maptype='roadmap')) +
+  geom_point(data=data_crashes,aes(x=coords.x1,y=coords.x2,group=YEAR,size=crashes)) +
+  geom_path(data=filter(towns.fortified,id==data_towns[3,]$TOWN),aes(x=long,y=lat,group=group),size=0.25) +
+  facet_wrap(~YEAR,nrow=4) +
+  ggtitle(str_c('Pedestrian crashes in ',data_towns[3,]$TOWN)) +
+  theme(
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    axis.title = element_blank()
+  )
+
+ggmap(get_map(location=str_c(data_towns[4,]$TOWN,', MA'),zoom=12,maptype='roadmap')) +
+  geom_point(data=data_crashes,aes(x=coords.x1,y=coords.x2,group=YEAR,size=crashes)) +
+  geom_path(data=filter(towns.fortified,id==data_towns[4,]$TOWN),aes(x=long,y=lat,group=group),size=0.25) +
+  facet_wrap(~YEAR,nrow=4) +
+  ggtitle(str_c('Pedestrian crashes in ',data_towns[4,]$TOWN)) +
+  theme(
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    axis.title = element_blank()
+  )
+
+ggmap(get_map(location=str_c(data_towns[5,]$TOWN,', MA'),zoom=12,maptype='roadmap')) +
+  geom_point(data=data_crashes,aes(x=coords.x1,y=coords.x2,group=YEAR,size=crashes)) +
+  geom_path(data=filter(towns.fortified,id==data_towns[5,]$TOWN),aes(x=long,y=lat,group=group),size=0.25) +
+  facet_wrap(~YEAR,nrow=4) +
+  ggtitle(str_c('Pedestrian crashes in ',data_towns[5,]$TOWN)) +
+  theme(
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    axis.title = element_blank()
+  )
 ```
-
-
-
-
