@@ -3,7 +3,7 @@
 		<SrcDataSource relativeToVRT="1">./</SrcDataSource>
 		<SrcLayer>pedestriancrashes</SrcLayer>
 		<GeometryType>wkbPoint</GeometryType>
-		<LayerSRS>WGS84</LayerSRS>
+		<LayerSRS>EPSG:26986</LayerSRS>
 		<GeometryField encoding="PointFromColumns" x="X" y="Y"/>
 	</OGRVRTLayer>
 </OGRVRTDataSource>

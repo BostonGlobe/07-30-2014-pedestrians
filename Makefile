@@ -20,7 +20,7 @@ prepare:
 		cp ../../pedestriancrashes.csv pedestriancrashes.csv; \
 		cp ../../pedestriancrashes.vrt pedestriancrashes.vrt; \
 		mkdir shp; \
-		ogr2ogr -f "ESRI Shapefile" shp/ pedestriancrashes.vrt
+		ogr2ogr -f "ESRI Shapefile" -t_srs EPSG:4326 shp/ pedestriancrashes.vrt
 
 	# download MA census tracts
 	cd data/downloaded; \

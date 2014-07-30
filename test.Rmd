@@ -55,6 +55,7 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
   }
 }
 
+library(stringr)
 library(lubridate)
 library(RColorBrewer)
 library(rgdal)
@@ -64,49 +65,86 @@ library(dplyr)
 library(ggmap)
 library(ggplot2)
 
-crashes.shp <- readOGR('private/shp','pedestriancrashes',p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
+# read shapefiles
+crashes.shp <- readOGR('downloaded/pedestriancrashes/shp','pedestriancrashes',  p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
 tracts.shp <- readOGR('downloaded','cb_2013_25_tract_500k',p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
-state.shp <- readOGR('downloaded','cb_2013_ma_state_500k',p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
+state.shp <- readOGR('downloaded','cb_2013_ma_state_500k', p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
 
-crashes.shp@data <- crashes.shp@data %>%
-  mutate(DATE = dmy(Crash.Date))
+# add tract information to each crash
+# standardize dates
+# reject bad dates, e.g. 2041
+crashes <- over(crashes.shp, tracts.shp) %>%
+  cbind(crashes.shp@data) %>%
+  mutate(DATE = mdy(Crash.Date)) %>%
+  filter(year(today()) >= year(DATE))
 
-crashesInTracts <- over(crashes.shp, tracts.shp) %>%
+# calculate crashes per tract
+crashesPerTract <- crashes %>%
   group_by(GEOID) %>%
   summarise(crashes = n()) %>%
   arrange(desc(crashes))
 
-tracts.shp@data <- cbind(
-  gCentroid(tracts.shp,byid=T)@coords,
-  tracts.shp@data) %>%
-  left_join(crashesInTracts,by='GEOID')
+tracts <- tracts.shp@data %>%
+  left_join(crashesPerTract,by='GEOID') %>%
+  arrange(desc(crashes))
   
-tracts <- fortify(tracts.shp,region='GEOID') %>%
-  mutate(GEOID=id) %>%
-  left_join(tracts.shp@data,by='GEOID')
-state <- fortify(state.shp,region='GEOID')
+# fortify for mapping purposes
+tracts.fortified <- fortify(tracts.shp,region='GEOID')
+state.fortified <- fortify(state.shp,region='GEOID')
+
+# add more data to tracts.shp
+#tracts.shp@data <- 
+
+# add more data to tracts.fortified
+#tracts.fortified <- tracts.fortified %>%
+#  mutate(GEOID=id) %>%
+#  left_join(crashesPerTract,by='GEOID')
+
+#%>%
+#  
+# add tract information to crashes
+#crashes.shp@data <- over(crashes.shp, tracts.shp) %>%
+#  cbind(crashes.shp@data) %>%
+#  mutate(DATE = mdy(Crash.Date))
+
+#  group_by(GEOID) %>%
+#  summarise(crashes = n()) %>%
+#  arrange(desc(crashes))
+
+# calculate tract centroids
+#tracts.shp@data <- cbind(
+#  gCentroid(tracts.shp,byid=T)@coords,
+#  tracts.shp@data) %>%
+#  left_join(crashesInTracts,by='GEOID')
 ```
 
-Let's explore the question: where are pedestrian crashes happening?
+Let's explore the question: are pedestrian crashes increasing?
 
 ```{r, echo=FALSE, fig.width=12, fig.height=7}
 
-data <- tracts.shp@data %>%
-  filter(!is.na(crashes))
+#yearsRange <- crashes %>%
+#  mutate(
+#    min = min(year(DATE)),
+#    max = max(year(DATE))
+#  ) %>%
+#  head(1)
 
-ggplot() +
-  geom_map(data=data,aes(map_id=GEOID,fill=crashes),map=tracts) +
-  geom_path(data=state,aes(long,lat,group=group),colour='black',size=0.125) +
-  coord_map() +
-  scale_fill_gradientn(name='Crashes',colours=brewer.pal(9,'Reds')) +
-  ggtitle('Pedestrian crashes by census tract') +
-  theme_minimal() +
-  theme(
-    panel.grid = element_blank(),
-    axis.ticks = element_blank(),
-    axis.text = element_blank(),
-    axis.title = element_blank()
-  )
+#data <- tracts %>%
+#  filter(!is.na(crashes))
+
+#ggplot() +
+#  geom_map(data=data,aes(map_id=GEOID,fill=crashes),map=tracts.fortified) +
+#  geom_path(data=state.fortified,aes(long,lat,group=group),colour='black',size=0.125) +
+#  coord_map() +
+#  scale_fill_gradientn(name='Crashes',colours=brewer.pal(9,'Reds')) +
+#  ggtitle(str_c('Pedestrian crashes by census tract, ',yearsRange[1,]$min,'-',yearsRange[1,]$max)) +
+#  theme_minimal() +
+#  theme(
+#    panel.grid = element_blank(),
+#    axis.ticks = element_blank(),
+#    axis.text = element_blank(),
+#    axis.title = element_blank()
+#  )
 ```
 
 ***
@@ -115,14 +153,14 @@ Let's look at the ten worst census tracts.
 
 ```{r, echo=FALSE, fig.width=12, fig.height=24, warning=FALSE, message=FALSE}
 
-data <- tracts.shp@data %>%
-  arrange(desc(crashes))
+#data <- tracts.shp@data %>%
+#  arrange(desc(crashes))
 
-crashPoints <- as.data.frame(crashes.shp@coords) %>%
-  mutate(long=coords.x1,lat=coords.x2) %>% select(-coords.x1,-coords.x2) %>%
-  group_by(long,lat) %>%
-  summarise(count=n()) %>%
-  arrange(desc(count))
+#crashPoints <- as.data.frame(crashes.shp@coords) %>%
+#  mutate(long=coords.x1,lat=coords.x2) %>% select(-coords.x1,-coords.x2) %>%
+#  group_by(long,lat) %>%
+#  summarise(count=n()) %>%
+#  arrange(desc(count))
 
 map1 <- ggmap(get_map(location=c(lon=data[1,]$x,lat=data[1,]$y),zoom=15)) +
   geom_polygon(data=tracts, aes(x=long, y=lat, group=group, fill=crashes), colour='NA', alpha=0.65)+
@@ -180,7 +218,7 @@ map8 <- ggmap(get_map(location=c(lon=data[8,]$x,lat=data[8,]$y),zoom=15)) +
   scale_fill_gradientn(name='Pedestrian crashes',colours=brewer.pal(9,'Reds')) +
   theme_nothing()
 
-multiplot(map1, map2, map3, map4, map5, map6, map7, map8, cols=2)
+#multiplot(map1, map2, map3, map4, map5, map6, map7, map8, cols=2)
 ```
 
 No surprises here - crashes are happening in areas with high pedestrian traffic.
@@ -191,22 +229,22 @@ Are pedestrian crashes increasing over time?
 
 ```{r, echo=FALSE, fig.width=12, fig.height=7, warning=FALSE, message=FALSE}
 
-data <- crashes.shp@data %>%
-  filter(as.character(City.Town) == 'BOSTON')
+#data <- crashes.shp@data %>%
+#  filter(as.character(City.Town) == 'BOSTON')
   
   
-  select(DATE) %>%
-  mutate(DATE = floor_date(DATE, 'week')) %>%
-  filter(year(DATE) %in% c(2010,2011,2012)) %>%
-  group_by(DATE) %>%
-  summarise(count = n()) %>%
-  arrange(desc(DATE))
+#  select(DATE) %>%
+#  mutate(DATE = floor_date(DATE, 'week')) %>%
+#  filter(year(DATE) %in% c(2010,2011,2012)) %>%
+#  group_by(DATE) %>%
+#  summarise(count = n()) %>%
+#  arrange(desc(DATE))
 
-ggplot(data, aes(DATE,count)) +
-  geom_line() +
-  geom_smooth() +
-  ggtitle('Pedestrian crashes, 2010-2012') +
-  xlab('week')
+#ggplot(data, aes(DATE,count)) +
+#  geom_line() +
+#  geom_smooth() +
+#  ggtitle('Pedestrian crashes, 2010-2012') +
+#  xlab('week')
 ```
 
 Maybe a little bit - but perhaps the state population is also increasing.
@@ -223,11 +261,11 @@ data <- crashes.shp@data %>%
   group_by(HOUR) %>%
   summarise(count = n())
 
-ggplot(data, aes(HOUR,count)) +
-  geom_line() +
-  geom_smooth() +
-  ggtitle('Pedestrian crashes per hour, 2010-2012') +
-  xlab('hour')
+#ggplot(data, aes(HOUR,count)) +
+#  geom_line() +
+#  geom_smooth() +
+#  ggtitle('Pedestrian crashes per hour, 2010-2012') +
+#  xlab('hour')
 ```
 
 Crashes peak in the evening, when people are commuting home. No surprises here.
@@ -251,11 +289,11 @@ data <- crashes.shp@data %>%
   summarise(count = sum(FATALITIES)) %>%
   arrange(desc(DATE))
 
-ggplot(data, aes(DATE,count)) +
-  geom_line() +
-  geom_smooth() +
-  ggtitle('Pedestrian fatalities, 2010-2012') +
-  xlab('week')
+#ggplot(data, aes(DATE,count)) +
+#  geom_line() +
+#  geom_smooth() +
+#  ggtitle('Pedestrian fatalities, 2010-2012') +
+#  xlab('week')
 ```
 
 Perhaps - but it's tough to see when we group crashes by week.
@@ -279,10 +317,10 @@ data <- crashes.shp@data %>%
   summarise(count = sum(FATALITIES)) %>%
   arrange(desc(DATE))
 
-ggplot(data, aes(DATE,count)) +
-  geom_line() +
-  ggtitle('Pedestrian fatalities, 2010-2012') +
-  xlab('year')
+#ggplot(data, aes(DATE,count)) +
+#  geom_line() +
+#  ggtitle('Pedestrian fatalities, 2010-2012') +
+#  xlab('year')
 ```
 
 We don't have enough data to see if fatalities are increasing.
@@ -298,7 +336,7 @@ data <- crashes.shp@data %>%
   summarise(count = n()) %>%
   arrange(desc(count))
 
-data
+#data
 ```
 
 No patterns here.
@@ -319,10 +357,10 @@ data <- allcrashes %>%
   filter(year(DATE) %in% c(2010,2011,2012)) %>%
   arrange(DATE)
 
-ggplot(data, aes(DATE,count)) +
-  geom_line() +
-  ggtitle('Pedestrian crashes, 2002-2012') +
-  xlab('year')
+#ggplot(data, aes(DATE,count)) +
+#  geom_line() +
+#  ggtitle('Pedestrian crashes, 2002-2012') +
+#  xlab('year')
 ```
 
 Aha! Pedestrian crashes have increased dramatically since 2009.

@@ -2,16 +2,8 @@
 	"folders":
 	[
 		{
-			"follow_symlinks": true,
-			"path": ".",
-			"folder_exclude_patterns": [
-				".tmp",
-				".sass-cache",
-				"node_modules",
-				"parts",
-				"07-30-2014_pedestrians_files"
-			],
-			"file_exclude_patterns": [
+			"file_exclude_patterns":
+			[
 				".Rhistory",
 				".bowerrc",
 				"bitbucket.sh",
@@ -27,7 +19,17 @@
 				"package.json",
 				"ggmapTemp.png",
 				"07-30-2014_pedestrians.html"
-			]
+			],
+			"folder_exclude_patterns":
+			[
+				".tmp",
+				".sass-cache",
+				"node_modules",
+				"parts",
+				"07-30-2014_pedestrians_files"
+			],
+			"follow_symlinks": true,
+			"path": "."
 		}
 	]
 }
