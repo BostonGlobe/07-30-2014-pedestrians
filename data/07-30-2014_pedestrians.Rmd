@@ -1,0 +1,162 @@
+---
+title: "07-30-2014_pedestrians"
+author: "Gabriel Florit"
+output:
+  html_document:
+    self_contained: false
+---
+
+```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+setwd("~/Documents/dev/07-30-2014_pedestrians/data")
+
+# Multiple plot function
+#
+# ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
+# - cols:   Number of columns in layout
+# - layout: A matrix specifying the layout. If present, 'cols' is ignored.
+#
+# If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
+# then plot 1 will go in the upper left, 2 will go in the upper right, and
+# 3 will go all the way across the bottom.
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  require(grid)
+
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+
+  numPlots = length(plots)
+
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                    ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+
+ if (numPlots==1) {
+    print(plots[[1]])
+
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+
+library(zoo)
+library(stringr)
+library(lubridate)
+library(RColorBrewer)
+library(rgdal)
+library(rgeos)
+library(tidyr)
+library(dplyr)
+library(ggmap)
+library(ggplot2)
+
+# read shapefiles
+crashes.shp <- readOGR('downloaded/pedestriancrashes/shp','pedestriancrashes',  p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
+tracts.shp <- readOGR('downloaded','cb_2013_25_tract_500k',p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
+state.shp <- readOGR('downloaded','cb_2013_ma_state_500k', p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
+
+# add tract information to each crash
+# standardize dates
+# reject bad dates, e.g. 2041
+crashes <- over(crashes.shp, tracts.shp) %>%
+  cbind(crashes.shp@data) %>%
+  mutate(DATE = mdy(Crash.Date)) %>%
+  filter(year(today()) >= year(DATE))
+
+# calculate crashes per tract
+crashesPerTract <- crashes %>%
+  group_by(GEOID) %>%
+  summarise(crashes = n()) %>%
+  arrange(desc(crashes))
+
+tracts <- tracts.shp@data %>%
+  left_join(crashesPerTract,by='GEOID') %>%
+  arrange(desc(crashes))
+  
+# fortify for mapping purposes
+tracts.fortified <- fortify(tracts.shp,region='GEOID')
+state.fortified <- fortify(state.shp,region='GEOID')
+
+population <- read.csv('population_by_state_00_13.csv',strip.white=T,stringsAsFactors=F) %>%
+  gather(Year,Population,-Place) %>%
+  mutate(
+    YEAR=as.numeric(gsub('^X','',Year)),
+    Population=as.numeric(gsub(',','',Population)),
+    Place=gsub('^\\.','',Place)
+  ) %>%
+  filter(Place=='Massachusetts') %>%
+  select(-Place,-Year)
+
+head(population)
+```
+
+Let's explore the question: are pedestrian crashes increasing?
+
+```{r, echo=FALSE, fig.width=12, fig.height=7}
+
+data <- crashes %>%
+  mutate(DATE=floor_date(DATE,'year')) %>%
+  group_by(DATE) %>%
+  summarise(count = n()) %>%
+  filter(year(DATE) >= 2002) %>%
+  arrange(DATE)
+
+ggplot(data,aes(DATE,count)) +
+  geom_line() +
+  ggtitle(str_c('Massachusetts pedestrian crashes, ',year(min(data$DATE)),'-',year(max(data$DATE)))) +
+  xlab('year')
+```
+
+It seems so.
+
+***
+
+But maybe the population is increasing as well? What if we normalize by population?
+
+```{r, echo=FALSE, fig.width=12, fig.height=7}
+
+data <- crashes %>%
+  mutate(YEAR=year(DATE)) %>%
+  group_by(YEAR) %>%
+  summarise(count = n()) %>%
+  filter(YEAR >= 2002) %>%
+  left_join(population,by='YEAR') %>%
+  mutate(
+    DATE=as.Date(as.yearmon(YEAR)),
+    rate=count/Population * 100
+  ) %>%
+  arrange(YEAR)
+
+ggplot(data,aes(DATE,rate)) +
+  geom_line() +
+  ggtitle(str_c('Massachusetts pedestrian crashes per capita, ',year(min(data$DATE)),'-',year(max(data$DATE)))) +
+  xlab('year') +
+  ylab('crashes per 10,000')
+```
+
+The state's population hasn't increased significantly, hence the rate looks pretty similar to the raw count. So what's going on? What explains the significant increase in crashes starting in 2010? According to MassDOT(?) expert FirstName LastName, in 2010 municipalities started working on improving accident reporting. This is important because better reporting leads to more money from the state.
+
+***
+
+Can we analyse this data to see which towns are working on their reporting? (the answer is maybe - graphs coming)
+
+```{r}
+
+```
+
