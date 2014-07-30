@@ -70,28 +70,44 @@ library(ggplot2)
 crashes.shp <- readOGR('downloaded/pedestriancrashes/shp','pedestriancrashes',  p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
 tracts.shp <- readOGR('downloaded','cb_2013_25_tract_500k',p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
 state.shp <- readOGR('downloaded','cb_2013_ma_state_500k', p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
+towns.shp <- readOGR('downloaded','MA_TOWNS',              p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
 
 # add tract information to each crash
 # standardize dates
 # reject bad dates, e.g. 2041
 crashes <- over(crashes.shp, tracts.shp) %>%
   cbind(crashes.shp@data) %>%
+  cbind(crashes.shp@coords) %>%
   mutate(DATE = mdy(Crash.Date)) %>%
   filter(year(today()) >= year(DATE))
 
-# calculate crashes per tract
-crashesPerTract <- crashes %>%
-  group_by(GEOID) %>%
-  summarise(crashes = n()) %>%
+# calculate crashes per year for each town
+yearlyCrashesPerTown <- crashes %>%
+  mutate(YEAR=year(DATE)) %>%
+  group_by(YEAR,City.Town) %>%
+  summarise(crashes = n())
+
+# create tracts dataframe
+tracts <- tracts.shp@data %>%
+  left_join(crashes %>%
+              group_by(GEOID) %>%
+              summarise(crashes = n()),by='GEOID') %>%
   arrange(desc(crashes))
 
-tracts <- tracts.shp@data %>%
-  left_join(crashesPerTract,by='GEOID') %>%
-  arrange(desc(crashes))
+# create towns dataframe
+# add town centroids
+# add total crashes per town
+towns <- towns.shp@data %>%
+  cbind(gCentroid(towns.shp,byid=T)@coords) %>%
+  left_join(yearlyCrashesPerTown %>%
+              group_by(City.Town) %>%
+              summarise(crashes = sum(crashes)) %>%
+              mutate(TOWN=City.Town) %>% select(-City.Town),by='TOWN')
   
 # fortify for mapping purposes
 tracts.fortified <- fortify(tracts.shp,region='GEOID')
 state.fortified <- fortify(state.shp,region='GEOID')
+towns.fortified <- fortify(towns.shp,region='TOWN')
 
 population <- read.csv('population_by_state_00_13.csv',strip.white=T,stringsAsFactors=F) %>%
   gather(Year,Population,-Place) %>%
@@ -102,8 +118,6 @@ population <- read.csv('population_by_state_00_13.csv',strip.white=T,stringsAsFa
   ) %>%
   filter(Place=='Massachusetts') %>%
   select(-Place,-Year)
-
-head(population)
 ```
 
 Let's explore the question: are pedestrian crashes increasing?
@@ -158,25 +172,20 @@ Can we analyse this data to see which towns are working on their reporting?
 
 ```{r, echo=FALSE, fig.width=12, fig.height=7}
 
-townCrashesPerYear <- crashes %>%
-  mutate(YEAR=year(DATE)) %>%
-  group_by(YEAR,City.Town) %>%
-  summarise(crashes = n())
-
-townCrashesPerYearOrdered <- crashes %>%
+data <- crashes %>%
   group_by(City.Town) %>%
   summarise(crashes=n()) %>%
   arrange(desc(crashes)) %>%
   head(5) %>%
   select(-crashes) %>%
-  left_join(townCrashesPerYear,by='City.Town') %>%
+  left_join(yearlyCrashesPerTown,by='City.Town') %>%
   mutate(DATE=as.Date(as.yearmon(YEAR))) %>%
   filter(year(DATE) >= 2002)
 
-ggplot(townCrashesPerYearOrdered,aes(DATE,crashes,group=City.Town)) +
+ggplot(data,aes(DATE,crashes,group=City.Town)) +
   geom_line(aes(color=City.Town=='BOSTON')) +
-  geom_text(data=filter(townCrashesPerYearOrdered,YEAR==max(YEAR)),aes(DATE,crashes,label=City.Town),hjust=1,vjust=-0.5,size=3) +
-  ggtitle(str_c('Towns with most pedestrian crashes, ',min(townCrashesPerYearOrdered$YEAR),'-',max(townCrashesPerYearOrdered$YEAR))) +
+  geom_text(data=filter(data,YEAR==max(YEAR)),aes(DATE,crashes,label=City.Town),hjust=1,vjust=-0.5,size=3) +
+  ggtitle(str_c('Towns with most pedestrian crashes, ',min(data$YEAR),'-',max(data$YEAR))) +
   theme(legend.position='none')
 ```
 
@@ -192,9 +201,10 @@ townCrashesTotal <- crashes %>%
   group_by(City.Town) %>%
   summarise(crashes=n()) %>%
   filter(crashes>50) %>%
-  select(-crashes)
+  arrange(desc(crashes))
 
 townCrashesPerYearOrdered <- townCrashesTotal %>%
+  select(-crashes) %>%
   left_join(townCrashesPerYear,by='City.Town') %>%
   mutate(DATE=as.Date(as.yearmon(YEAR))) %>%
   filter(year(DATE) >= 2002)
@@ -211,3 +221,19 @@ ggplot(townCrashesPerYearOrdered,aes(DATE,crashes,group=City.Town)) +
 ```
 
 It seems that Barnstable and Springfield didn't report pedestrian accidents prior to 2010.
+
+```{r}
+
+data <- townCrashesTotal 
+
+map <- get_map(location=c(lon=,lat=),zoom=15)
+
+ggplot() +
+  geom_map()
+
+
+```
+
+
+
+

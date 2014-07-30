@@ -32,3 +32,9 @@ prepare:
 		curl http://www2.census.gov/geo/tiger/GENZ2013/cb_2013_us_state_500k.zip > cb_2013_us_state_500k.zip; \
 		unzip cb_2013_us_state_500k.zip; \
 		ogr2ogr -f "ESRI Shapefile" cb_2013_ma_state_500k.shp cb_2013_us_state_500k.shp -where "GEOID = '25'";
+
+	# download MA towns
+	cd data/downloaded; \
+		curl http://wsgw.mass.gov/data/gispub/shape/state/towns.zip > towns.zip; \
+		unzip towns.zip; \
+		ogr2ogr -f "ESRI Shapefile" -t_srs EPSG:4326 MA_TOWNS.shp TOWNS_POLYM.shp;
