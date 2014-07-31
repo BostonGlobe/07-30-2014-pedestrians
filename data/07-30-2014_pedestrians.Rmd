@@ -157,7 +157,8 @@ data <- crashes %>%
 ggplot(data,aes(DATE,count)) +
   geom_line() +
   ggtitle(str_c('Massachusetts pedestrian crashes, ',year(min(data$DATE)),'-',year(max(data$DATE)))) +
-  xlab('year')
+  xlab('year') +
+  ylim(c(0,max(data$count)))
 ```
 
 It seems so.
@@ -184,7 +185,8 @@ ggplot(data,aes(DATE,rate)) +
   geom_line() +
   ggtitle(str_c('Massachusetts pedestrian crashes per capita, ',year(min(data$DATE)),'-',year(max(data$DATE)))) +
   xlab('year') +
-  ylab('crashes per 10,000')
+  ylab('crashes per 10,000') +
+  ylim(c(0,max(data$rate)))
 ```
 
 The state's population hasn't increased significantly, hence the rate looks pretty similar to the raw count. So what's going on? What explains the significant increase in crashes starting in 2010? According to MassDOT(?) expert FirstName LastName, in 2010 municipalities started working on improving accident reporting. This is important because better reporting leads to more money from the state.
@@ -207,7 +209,8 @@ ggplot(data,aes(DATE,crashes,group=City.Town)) +
   geom_line(aes(color=City.Town=='BOSTON')) +
   geom_text(data=filter(data,YEAR==max(YEAR)),aes(DATE,crashes,label=City.Town),hjust=1,vjust=-0.5,size=3) +
   ggtitle(str_c('Towns with most pedestrian crashes, ',min(data$YEAR),'-',max(data$YEAR))) +
-  theme(legend.position='none')
+  theme(legend.position='none') +
+  ylim(c(0,max(data$crashes)))
 ```
 
 Boston's reporting inconsistency is striking.
@@ -241,7 +244,7 @@ It seems that Barnstable and Springfield didn't report pedestrian accidents prio
 
 ***
 
-Let's look at the top five towns over time.
+Let's look at towns with the most drastic change in reporting over time.
 
 ```{r, echo=FALSE, fig.width=12, fig.height=14, warning=FALSE, message=FALSE}
 
@@ -249,61 +252,51 @@ data_towns <- towns %>%
   arrange(desc(crashes))
 
 data_crashes <- crashes %>%
+  filter(City.Town %in% c('BARNSTABLE','NEWTON','PEABODY','SPRINGFIELD')) %>%
   mutate(YEAR=year(DATE)) %>%
   group_by(coords.x1,coords.x2,YEAR) %>%
   summarise(crashes=n()) %>%
   filter(coords.x2 >= state$S & coords.x2 <= state$N) %>%
   arrange(desc(crashes))
 
-ggmap(get_map(location=str_c(data_towns[1,]$TOWN,', MA'),zoom=12,maptype='roadmap')) +
+ggmap(get_map(location='BARNSTABLE, MA',zoom=12,maptype='roadmap')) +
   geom_point(data=data_crashes,aes(x=coords.x1,y=coords.x2,group=YEAR,size=crashes)) +
-  geom_path(data=filter(towns.fortified,id==data_towns[1,]$TOWN),aes(x=long,y=lat,group=group),size=0.25) +
+  geom_path(data=filter(towns.fortified,id=='BARNSTABLE'),aes(x=long,y=lat,group=group),size=0.25) +
   facet_wrap(~YEAR,nrow=4) +
-  ggtitle(str_c('Pedestrian crashes in ',data_towns[1,]$TOWN)) +
+  ggtitle(str_c('Pedestrian crashes in BARNSTABLE')) +
   theme(
     axis.ticks = element_blank(),
     axis.text = element_blank(),
     axis.title = element_blank()
   )
 
-ggmap(get_map(location=str_c(data_towns[2,]$TOWN,', MA'),zoom=12,maptype='roadmap')) +
+ggmap(get_map(location='NEWTON, MA',zoom=12,maptype='roadmap')) +
   geom_point(data=data_crashes,aes(x=coords.x1,y=coords.x2,group=YEAR,size=crashes)) +
-  geom_path(data=filter(towns.fortified,id==data_towns[2,]$TOWN),aes(x=long,y=lat,group=group),size=0.25) +
+  geom_path(data=filter(towns.fortified,id=='NEWTON'),aes(x=long,y=lat,group=group),size=0.25) +
   facet_wrap(~YEAR,nrow=4) +
-  ggtitle(str_c('Pedestrian crashes in ',data_towns[2,]$TOWN)) +
+  ggtitle(str_c('Pedestrian crashes in NEWTON')) +
   theme(
     axis.ticks = element_blank(),
     axis.text = element_blank(),
     axis.title = element_blank()
   )
 
-ggmap(get_map(location=str_c(data_towns[3,]$TOWN,', MA'),zoom=12,maptype='roadmap')) +
+ggmap(get_map(location='PEABODY, MA',zoom=12,maptype='roadmap')) +
   geom_point(data=data_crashes,aes(x=coords.x1,y=coords.x2,group=YEAR,size=crashes)) +
-  geom_path(data=filter(towns.fortified,id==data_towns[3,]$TOWN),aes(x=long,y=lat,group=group),size=0.25) +
+  geom_path(data=filter(towns.fortified,id=='PEABODY'),aes(x=long,y=lat,group=group),size=0.25) +
   facet_wrap(~YEAR,nrow=4) +
-  ggtitle(str_c('Pedestrian crashes in ',data_towns[3,]$TOWN)) +
+  ggtitle(str_c('Pedestrian crashes in PEABODY')) +
   theme(
     axis.ticks = element_blank(),
     axis.text = element_blank(),
     axis.title = element_blank()
   )
 
-ggmap(get_map(location=str_c(data_towns[4,]$TOWN,', MA'),zoom=12,maptype='roadmap')) +
+ggmap(get_map(location='SPRINGFIELD, MA',zoom=12,maptype='roadmap')) +
   geom_point(data=data_crashes,aes(x=coords.x1,y=coords.x2,group=YEAR,size=crashes)) +
-  geom_path(data=filter(towns.fortified,id==data_towns[4,]$TOWN),aes(x=long,y=lat,group=group),size=0.25) +
+  geom_path(data=filter(towns.fortified,id=='SPRINGFIELD'),aes(x=long,y=lat,group=group),size=0.25) +
   facet_wrap(~YEAR,nrow=4) +
-  ggtitle(str_c('Pedestrian crashes in ',data_towns[4,]$TOWN)) +
-  theme(
-    axis.ticks = element_blank(),
-    axis.text = element_blank(),
-    axis.title = element_blank()
-  )
-
-ggmap(get_map(location=str_c(data_towns[5,]$TOWN,', MA'),zoom=12,maptype='roadmap')) +
-  geom_point(data=data_crashes,aes(x=coords.x1,y=coords.x2,group=YEAR,size=crashes)) +
-  geom_path(data=filter(towns.fortified,id==data_towns[5,]$TOWN),aes(x=long,y=lat,group=group),size=0.25) +
-  facet_wrap(~YEAR,nrow=4) +
-  ggtitle(str_c('Pedestrian crashes in ',data_towns[5,]$TOWN)) +
+  ggtitle(str_c('Pedestrian crashes in SPRINGFIELD')) +
   theme(
     axis.ticks = element_blank(),
     axis.text = element_blank(),
