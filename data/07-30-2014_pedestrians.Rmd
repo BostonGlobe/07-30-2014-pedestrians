@@ -132,15 +132,13 @@ tracts.fortified <- fortify(tracts.shp,region='GEOID')
 state.fortified <- fortify(state.shp,region='GEOID')
 towns.fortified <- fortify(towns.shp,region='TOWN')
 
-population <- read.csv('population_by_state_00_13.csv',strip.white=T,stringsAsFactors=F) %>%
-  gather(Year,Population,-Place) %>%
+population <- read.csv('downloaded/towns_2000-2010s.csv',strip.white=T,stringsAsFactors=F) %>%
+  gather(year,population,-NAME) %>%
   mutate(
-    YEAR=as.numeric(gsub('^X','',Year)),
-    Population=as.numeric(gsub(',','',Population)),
-    Place=gsub('^\\.','',Place)
+    YEAR = as.numeric(gsub('POPESTIMATE', '', as.character(year))),
+    place = gsub(' TOWN$| CITY$| TOWN CITY$', '', toupper(NAME))
   ) %>%
-  filter(Place=='Massachusetts') %>%
-  select(-Place,-Year)
+  select(-NAME,-year)
 ```
 
 Let's explore the question: are pedestrian crashes increasing?
@@ -174,10 +172,11 @@ data <- crashes %>%
   group_by(YEAR) %>%
   summarise(count = n()) %>%
   filter(YEAR >= 2002) %>%
-  left_join(population,by='YEAR') %>%
+  mutate(place='MASSACHUSETTS') %>%
+  left_join(population,by=c('YEAR','place')) %>%
   mutate(
     DATE=as.Date(as.yearmon(YEAR)),
-    rate=count/Population * 100
+    rate=count/population * 100
   ) %>%
   arrange(YEAR)
 
@@ -214,6 +213,37 @@ ggplot(data,aes(DATE,crashes,group=City.Town)) +
 ```
 
 Boston's reporting inconsistency is striking.
+
+***
+
+What if we normalize by population?
+
+```{r, echo=FALSE, fig.width=12, fig.height=7}
+
+data <- towns %>%
+  arrange(desc(crashes)) %>%
+  head(5) %>%
+  select(City.Town=TOWN) %>%
+  left_join(yearlyCrashesPerTown,by='City.Town') %>%
+  mutate(
+    DATE=as.Date(as.yearmon(YEAR)),
+    place=as.character(City.Town)
+  ) %>%
+  select(-City.Town) %>%
+  filter(year(DATE) >= 2002) %>%
+  left_join(population,by=c('YEAR','place')) %>%
+  mutate(rate=crashes/population * 10000)
+
+ggplot(data,aes(DATE,rate,group=place)) +
+  geom_line(aes(color=place=='BOSTON')) +
+  geom_text(data=filter(data,YEAR==max(YEAR)),aes(DATE,rate,label=place),hjust=1,vjust=-0.5,size=3) +
+  ggtitle(str_c('Pedestrian crashes per capita, ',min(data$YEAR),'-',max(data$YEAR))) +
+  ylab('crashes per 10,000') +
+  theme(legend.position='none') +
+  ylim(c(0,max(data$rate)))
+```
+
+This graph shows that Boston's reported crash rate is quite low. We could probably make a case that Boston has a substantial amount of external foot traffic - people that don't live in the city but work in the city. If we were to include that number, Boston's crash rate would go down even lower.
 
 ***
 
@@ -303,3 +333,40 @@ ggmap(get_map(location='SPRINGFIELD, MA',zoom=12,maptype='roadmap')) +
     axis.title = element_blank()
   )
 ```
+
+***
+ 
+One final graph - let's look at the distribution of reported crashes per town over time.
+
+```{r, echo=FALSE, fig.width=12, fig.height=7, warning=FALSE, message=FALSE}
+
+data <- towns %>%
+  arrange(desc(crashes)) %>%
+  select(City.Town=TOWN) %>%
+  left_join(yearlyCrashesPerTown,by='City.Town') %>%
+  mutate(DATE=as.Date(as.yearmon(YEAR))) %>%
+  filter(year(DATE) >= 2002)
+
+ggplot(data,aes(crashes,group=YEAR)) +
+  geom_histogram() +
+  facet_wrap(~YEAR,nrow=3) +
+  ggtitle(str_c('Distribution of pedestrian crashes per town, ',min(data$YEAR),'-',max(data$YEAR)))
+```
+
+That's not particularly useful.
+
+```{r, echo=FALSE, fig.width=12, fig.height=7, warning=FALSE, message=FALSE}
+
+data <- towns %>%
+  arrange(desc(crashes)) %>%
+  select(City.Town=TOWN) %>%
+  left_join(yearlyCrashesPerTown,by='City.Town') %>%
+  mutate(DATE=as.Date(as.yearmon(YEAR))) %>%
+  filter(year(DATE) >= 2002)
+
+ggplot(data,aes(DATE,crashes,group=DATE)) +
+  geom_boxplot() +
+  ggtitle(str_c('Distribution of pedestrian crashes per town, ',min(data$YEAR),'-',max(data$YEAR)))
+```
+
+Interesting, but not very revealing.
