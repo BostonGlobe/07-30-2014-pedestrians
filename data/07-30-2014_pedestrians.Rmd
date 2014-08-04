@@ -65,19 +65,25 @@ library(tidyr)
 library(dplyr)
 library(ggmap)
 library(ggplot2)
+```
+
+Let's explore the question: are pedestrian crashes increasing? We'll be working with the following data sources:
+
+- pedestrian crashes from MassDOT's [Crash Portal](http://services.massdot.state.ma.us/crashportal/CrashMapPage.aspx?Mode=Adhoc)
+- town shapefile from [MassGIS](http://www.mass.gov/anf/research-and-tech/it-serv-and-support/application-serv/office-of-geographic-information-massgis/datalayers/towns.html)
+- town population estimates [from US Census Bureau](https://www.census.gov/popest/data/datasets.html)
+
+### Setup
+
+```{r, results='hide', warning=FALSE, message=FALSE}
 
 # read shapefiles
 crashes.shp <- readOGR('downloaded/pedestriancrashes/shp','pedestriancrashes',  p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
-tracts.shp <- readOGR('downloaded','cb_2013_25_tract_500k',p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
-state.shp <- readOGR('downloaded','cb_2013_ma_state_500k', p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
-towns.shp <- readOGR('downloaded','MA_TOWNS',              p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
+towns.shp <- readOGR('downloaded','MA_TOWNS', p4s='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
 
-# add tract information to each crash
 # standardize dates
 # reject bad dates, e.g. 2041
-crashes <- over(crashes.shp, tracts.shp) %>%
-  cbind(crashes.shp@data) %>%
-  cbind(crashes.shp@coords) %>%
+crashes <- crashes.shp@data %>%
   mutate(DATE = mdy(Crash.Date)) %>%
   filter(year(today()) >= year(DATE))
 
@@ -87,53 +93,25 @@ yearlyCrashesPerTown <- crashes %>%
   group_by(YEAR,City.Town) %>%
   summarise(crashes = n())
 
-# create tracts dataframe
-tracts <- tracts.shp@data %>%
-  left_join(crashes %>%
-              group_by(GEOID) %>%
-              summarise(crashes = n()),by='GEOID') %>%
-  arrange(desc(crashes))
-
 # create towns dataframe
-# add town centroids
 # add town boundaries
 # add total crashes per town
 towns <- towns.shp@data %>%
-  cbind(gCentroid(towns.shp,byid=T)@coords) %>%
   cbind(fortify(gEnvelope(towns.shp,byid=T)) %>%
           mutate(id=as.numeric(id)) %>%
           group_by(id) %>%
-          summarise(
-            E=min(long),
-            W=max(long),
-            S=min(lat),
-            N=max(lat)
-          ) %>%
+          summarise(E=min(long),W=max(long),S=min(lat),N=max(lat)) %>%
           arrange(id)) %>%
   left_join(yearlyCrashesPerTown %>%
               group_by(City.Town) %>%
               summarise(crashes = sum(crashes)) %>%
               mutate(TOWN=City.Town) %>% select(-City.Town),by='TOWN')
 
-# create state dataframe
-# add state boundaries
-state <- state.shp@data %>%
-  cbind(fortify(gEnvelope(state.shp,byid=T)) %>%
-          mutate(id=as.numeric(id)) %>%
-          group_by(id) %>%
-          summarise(
-            E=min(long),
-            W=max(long),
-            S=min(lat),
-            N=max(lat)
-          ) %>%
-          arrange(id))
-  
 # fortify for mapping purposes
-tracts.fortified <- fortify(tracts.shp,region='GEOID')
-state.fortified <- fortify(state.shp,region='GEOID')
 towns.fortified <- fortify(towns.shp,region='TOWN')
 
+# read population data
+# remove ' Town' or ' City' suffixes from town names 
 population <- read.csv('downloaded/towns_2000-2010s.csv',strip.white=T,stringsAsFactors=F) %>%
   gather(year,population,-NAME) %>%
   mutate(
@@ -143,10 +121,15 @@ population <- read.csv('downloaded/towns_2000-2010s.csv',strip.white=T,stringsAs
   select(-NAME,-year)
 ```
 
-Let's explore the question: are pedestrian crashes increasing?
+### Analysis
 
-```{r, echo=FALSE, fig.width=12, fig.height=7}
+Are pedestrian crashes increasing?
 
+```{r, fig.width=12, fig.height=7}
+
+# group crashes by year
+# get count
+# only look at 2002 onwards
 data <- crashes %>%
   mutate(DATE=floor_date(DATE,'year')) %>%
   group_by(DATE) %>%
@@ -167,8 +150,13 @@ It seems so.
 
 But maybe the population is increasing as well? What if we normalize by population?
 
-```{r, echo=FALSE, fig.width=12, fig.height=7}
+```{r, fig.width=12, fig.height=7}
 
+# group crashes by year
+# get count
+# only look at 2002 onwards
+# add yearly state population
+# calculate yearly pedestrian accident rate
 data <- crashes %>%
   mutate(YEAR=year(DATE)) %>%
   group_by(YEAR) %>%
@@ -196,8 +184,9 @@ The state's population hasn't increased significantly, hence the rate looks pret
 
 Can we analyse this data to see which towns are working on their reporting?
 
-```{r, echo=FALSE, fig.width=12, fig.height=7}
+```{r, fig.width=12, fig.height=7}
 
+# get top towns by total crashes
 data <- towns %>%
   arrange(desc(crashes)) %>%
   head(5) %>%
@@ -220,8 +209,10 @@ Boston's reporting inconsistency is striking.
 
 What if we normalize by population?
 
-```{r, echo=FALSE, fig.width=12, fig.height=7}
+```{r, fig.width=12, fig.height=7}
 
+# get top towns by total crashes
+# add yearly town population
 data <- towns %>%
   arrange(desc(crashes)) %>%
   head(5) %>%
@@ -251,8 +242,9 @@ This graph shows that Boston's reported crash rate is quite low. We could probab
 
 What about other towns?
 
-```{r, echo=FALSE, fig.width=12, fig.height=12}
+```{r, fig.width=12, fig.height=12}
 
+# only look at towns with more than 50 crashes total
 data <- towns %>%
   filter(crashes>50) %>%
   arrange(desc(crashes)) %>%
@@ -276,71 +268,9 @@ It seems that Barnstable and Springfield didn't report pedestrian accidents prio
 
 ***
 
-Let's look at towns with the most drastic change in reporting over time.
-
-```{r, echo=FALSE, fig.width=12, fig.height=14, warning=FALSE, message=FALSE}
-
-data_towns <- towns %>%
-  arrange(desc(crashes))
-
-data_crashes <- crashes %>%
-  filter(City.Town %in% c('BARNSTABLE','NEWTON','PEABODY','SPRINGFIELD')) %>%
-  mutate(YEAR=year(DATE)) %>%
-  group_by(coords.x1,coords.x2,YEAR) %>%
-  summarise(crashes=n()) %>%
-  filter(coords.x2 >= state$S & coords.x2 <= state$N) %>%
-  arrange(desc(crashes))
-
-ggmap(get_map(location='BARNSTABLE, MA',zoom=12,maptype='roadmap')) +
-  geom_point(data=data_crashes,aes(x=coords.x1,y=coords.x2,group=YEAR,size=crashes)) +
-  geom_path(data=filter(towns.fortified,id=='BARNSTABLE'),aes(x=long,y=lat,group=group),size=0.25) +
-  facet_wrap(~YEAR,nrow=4) +
-  ggtitle(str_c('Pedestrian crashes in BARNSTABLE')) +
-  theme(
-    axis.ticks = element_blank(),
-    axis.text = element_blank(),
-    axis.title = element_blank()
-  )
-
-ggmap(get_map(location='NEWTON, MA',zoom=12,maptype='roadmap')) +
-  geom_point(data=data_crashes,aes(x=coords.x1,y=coords.x2,group=YEAR,size=crashes)) +
-  geom_path(data=filter(towns.fortified,id=='NEWTON'),aes(x=long,y=lat,group=group),size=0.25) +
-  facet_wrap(~YEAR,nrow=4) +
-  ggtitle(str_c('Pedestrian crashes in NEWTON')) +
-  theme(
-    axis.ticks = element_blank(),
-    axis.text = element_blank(),
-    axis.title = element_blank()
-  )
-
-ggmap(get_map(location='PEABODY, MA',zoom=12,maptype='roadmap')) +
-  geom_point(data=data_crashes,aes(x=coords.x1,y=coords.x2,group=YEAR,size=crashes)) +
-  geom_path(data=filter(towns.fortified,id=='PEABODY'),aes(x=long,y=lat,group=group),size=0.25) +
-  facet_wrap(~YEAR,nrow=4) +
-  ggtitle(str_c('Pedestrian crashes in PEABODY')) +
-  theme(
-    axis.ticks = element_blank(),
-    axis.text = element_blank(),
-    axis.title = element_blank()
-  )
-
-ggmap(get_map(location='SPRINGFIELD, MA',zoom=12,maptype='roadmap')) +
-  geom_point(data=data_crashes,aes(x=coords.x1,y=coords.x2,group=YEAR,size=crashes)) +
-  geom_path(data=filter(towns.fortified,id=='SPRINGFIELD'),aes(x=long,y=lat,group=group),size=0.25) +
-  facet_wrap(~YEAR,nrow=4) +
-  ggtitle(str_c('Pedestrian crashes in SPRINGFIELD')) +
-  theme(
-    axis.ticks = element_blank(),
-    axis.text = element_blank(),
-    axis.title = element_blank()
-  )
-```
-
-***
- 
 One final graph - let's look at the distribution of reported crashes per town over time.
 
-```{r, echo=FALSE, fig.width=12, fig.height=7, warning=FALSE, message=FALSE}
+```{r, fig.width=12, fig.height=7, warning=FALSE, message=FALSE}
 
 data <- towns %>%
   arrange(desc(crashes)) %>%
@@ -357,7 +287,7 @@ ggplot(data,aes(crashes,group=YEAR)) +
 
 That's not particularly useful.
 
-```{r, echo=FALSE, fig.width=12, fig.height=7, warning=FALSE, message=FALSE}
+```{r, fig.width=12, fig.height=7, warning=FALSE, message=FALSE}
 
 data <- towns %>%
   arrange(desc(crashes)) %>%
@@ -377,23 +307,20 @@ Interesting, but not very revealing.
 
 How many pedestrian accidents (involving injuries) in Boston?
 
-```{r, echo=FALSE, fig.width=12, fig.height=7, warning=FALSE, message=FALSE}
+```{r, fig.width=12, fig.height=7, warning=FALSE, message=FALSE, results='asis'}
 
-crashes %>%
-  mutate(YEAR = year(DATE)) %>%
+# create a new column, SEVERITY, that creates three groups: fatal injury, non-fatal injury, other
+data <- crashes %>%
+  mutate(
+    YEAR = year(DATE),
+    SEVERITY = ifelse(grepl('fatal injury',tolower(as.character(Crash.Seve))), as.character(Crash.Seve), 'Other')
+  ) %>%
   filter(
     City.Town == 'BOSTON',
     YEAR > 2009
   ) %>%
-  group_by(YEAR,Crash.Seve) %>%
-  summarise(accidents = n())
+  group_by(YEAR,SEVERITY) %>%
+  summarise(ACCIDENTS = n())
 
-crashes %>%
-  mutate(YEAR = year(DATE)) %>%
-  filter(
-    City.Town == 'BOSTON',
-    YEAR > 2009
-  ) %>%
-  group_by(YEAR) %>%
-  summarise(accidents = n())
+knitr::kable(data)
 ```

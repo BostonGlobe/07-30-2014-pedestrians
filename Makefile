@@ -13,11 +13,6 @@ prepare:
 
 	cd data; rm -rf downloaded; mkdir downloaded;
 
-	# get state outline
-	cd data/downloaded; \
-		curl http://wsgw.mass.gov/data/gispub/shape/state/outline25k.zip > outline25k.zip; \
-		unzip outline25k.zip;
-
 	# convert crashes to shapefile
 	cd data/downloaded; \
 		ogr2ogr -f "ESRI Shapefile" pedestriancrashes ../pedestriancrashes.csv; \
@@ -38,17 +33,6 @@ prepare:
 	# 	mkdir shp; \
 	# 	ogr2ogr -f "ESRI Shapefile" -t_srs EPSG:4326 -clipsrc 33861.260000 777542.880000 330838.690000 959747.440000 shp/ pedestriancrashes.vrt; \
 	# 	mv ../../data.csv ../../pedestriancrashes.csv;
-
-	# download MA census tracts
-	cd data/downloaded; \
-		curl http://www2.census.gov/geo/tiger/GENZ2013/cb_2013_25_tract_500k.zip > cb_2013_25_tract_500k.zip; \
-		unzip cb_2013_25_tract_500k.zip;
-
-	# download states shapefile, select only MA
-	cd data/downloaded; \
-		curl http://www2.census.gov/geo/tiger/GENZ2013/cb_2013_us_state_500k.zip > cb_2013_us_state_500k.zip; \
-		unzip cb_2013_us_state_500k.zip; \
-		ogr2ogr -f "ESRI Shapefile" cb_2013_ma_state_500k.shp cb_2013_us_state_500k.shp -where "GEOID = '25'";
 
 	# download MA towns
 	cd data/downloaded; \

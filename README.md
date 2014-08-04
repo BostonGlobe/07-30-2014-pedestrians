@@ -4,6 +4,11 @@ This graphic was generated with [generator-globegraphic](https://github.com/Bost
 
 Please note: do not reproduce Boston Globe logos or fonts without written permission.
 
+## TODO
+
+- make chart of largest towns
+- add EMS data
+
 ## Notes
 
 - mapbox streets color: #bf563f
