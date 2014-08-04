@@ -397,4 +397,3 @@ crashes %>%
   group_by(YEAR) %>%
   summarise(accidents = n())
 ```
-
