@@ -13,6 +13,11 @@ prepare:
 
 	cd data; rm -rf downloaded; mkdir downloaded;
 
+	# get state outline
+	cd data/downloaded; \
+		curl http://wsgw.mass.gov/data/gispub/shape/state/outline25k.zip > outline25k.zip; \
+		unzip outline25k.zip;
+
 	# convert crashes to shapefile
 	cd data/downloaded; \
 		ogr2ogr -f "ESRI Shapefile" pedestriancrashes ../pedestriancrashes.csv; \
@@ -20,7 +25,19 @@ prepare:
 		cp ../../pedestriancrashes.csv pedestriancrashes.csv; \
 		cp ../../pedestriancrashes.vrt pedestriancrashes.vrt; \
 		mkdir shp; \
-		ogr2ogr -f "ESRI Shapefile" -t_srs EPSG:4326 shp/ pedestriancrashes.vrt
+		ogr2ogr -f "ESRI Shapefile" -t_srs EPSG:4326 shp/ pedestriancrashes.vrt;
+
+	# # convert crashes to shapefile
+	# cd data/downloaded; \
+	# 	cp ../pedestriancrashes.csv ../data.csv; \
+	# 	csvgrep ../data.csv -c "City/Town" -r "BOSTON" > ../pedestriancrashes.csv; \
+	# 	ogr2ogr -f "ESRI Shapefile" pedestriancrashes ../pedestriancrashes.csv; \
+	# 	cd pedestriancrashes; \
+	# 	cp ../../pedestriancrashes.csv pedestriancrashes.csv; \
+	# 	cp ../../pedestriancrashes.vrt pedestriancrashes.vrt; \
+	# 	mkdir shp; \
+	# 	ogr2ogr -f "ESRI Shapefile" -t_srs EPSG:4326 -clipsrc 33861.260000 777542.880000 330838.690000 959747.440000 shp/ pedestriancrashes.vrt; \
+	# 	mv ../../data.csv ../../pedestriancrashes.csv;
 
 	# download MA census tracts
 	cd data/downloaded; \
@@ -67,4 +84,37 @@ prepare:
 
 	# get top 5 pedestrian crashes
 	ogr2ogr -t_srs EPSG:4326 -f GeoJSON data/downloaded/clusters.json "http://services.massdot.state.ma.us/ArcGIS/rest/services/Crash/2011CrashClusters/MapServer/3/query?where=RANK%20IN%20(1,2,3,4,5)&outfields=*&f=json" OGRGeoJSON
+
+encodetiles:
+
+	cd data; \
+		rm -rf tiles; mkdir tiles; cd tiles; \
+		ogr2ogr -f CSV -lco GEOMETRY=AS_XY temp.csv ../downloaded/pedestriancrashes/shp/pedestriancrashes.shp; \
+		csvcut temp.csv -c 2,1 | tail -n +2 > pedestriancrashes.csv; \
+		cat pedestriancrashes.csv | ~/Documents/other/datamaps/encode -o data -z 16;
+
+maketiles:
+
+	cd data/tiles; \
+		rm -f test.png; \
+		~/Documents/other/datamaps/render \
+			-t 255 \
+			-pg1 \
+			-B 10:0.05917:1.23 \
+			-c FF0000 \
+			-A -- data 12 42.235336 -71.172228 42.392132 -71.000377 \
+			> test.png;
+
+
+
+
+
+
+
+
+
+
+
+
+
 

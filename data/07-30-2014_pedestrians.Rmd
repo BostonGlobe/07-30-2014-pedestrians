@@ -115,6 +115,8 @@ towns <- towns.shp@data %>%
               summarise(crashes = sum(crashes)) %>%
               mutate(TOWN=City.Town) %>% select(-City.Town),by='TOWN')
 
+# create state dataframe
+# add state boundaries
 state <- state.shp@data %>%
   cbind(fortify(gEnvelope(state.shp,byid=T)) %>%
           mutate(id=as.numeric(id)) %>%
@@ -370,3 +372,29 @@ ggplot(data,aes(DATE,crashes,group=DATE)) +
 ```
 
 Interesting, but not very revealing.
+
+***
+
+How many pedestrian accidents (involving injuries) in Boston?
+
+```{r, echo=FALSE, fig.width=12, fig.height=7, warning=FALSE, message=FALSE}
+
+crashes %>%
+  mutate(YEAR = year(DATE)) %>%
+  filter(
+    City.Town == 'BOSTON',
+    YEAR > 2009
+  ) %>%
+  group_by(YEAR,Crash.Seve) %>%
+  summarise(accidents = n())
+
+crashes %>%
+  mutate(YEAR = year(DATE)) %>%
+  filter(
+    City.Town == 'BOSTON',
+    YEAR > 2009
+  ) %>%
+  group_by(YEAR) %>%
+  summarise(accidents = n())
+```
+

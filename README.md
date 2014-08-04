@@ -6,8 +6,7 @@ Please note: do not reproduce Boston Globe logos or fonts without written permis
 
 ## Notes
 
-- is the pedestrian crash data available online?
-- if not, should we check it in?
+- mapbox streets color: #bf563f
 
 ## Install
 
