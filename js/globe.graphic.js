@@ -24,7 +24,7 @@ globe.graphic = function() {
 		center: [42.3581, -71.0636],
 		minZoom: 8,
 		maxZoom: 18,
-		zoom: 13,
+		zoom: 10,
 		attributionControl: false,
 		layers: [noStreetsLayer, streetsLayer]
 	});
