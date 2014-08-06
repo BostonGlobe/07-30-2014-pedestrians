@@ -6,12 +6,11 @@ Please note: do not reproduce Boston Globe logos or fonts without written permis
 
 ## TODO
 
+- add leaflet to our CDN
 - make chart of largest towns
 - add EMS data
-
-## Notes
-
-- mapbox streets color: #bf563f
+- make sure that the top ad area is wiped out
+- make note of modifications to touch code that should go in generator
 
 ## Install
 
