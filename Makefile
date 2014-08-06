@@ -3,11 +3,15 @@ R:
 	Rscript -e "rmarkdown::render('data/07-30-2014_pedestrians.Rmd')"
 	open data/07-30-2014_pedestrians.html
 
+
+
 R_deploy:
 
 	cp data/07-30-2014_pedestrians.html /Volumes/www_html/multimedia/graphics/projectFiles/Rmd/
 	rsync -rv data/07-30-2014_pedestrians_files /Volumes/www_html/multimedia/graphics/projectFiles/Rmd
 	open http://private.boston.com/multimedia/graphics/projectFiles/Rmd/07-30-2014_pedestrians.html
+
+
 
 prepare:
 
@@ -33,6 +37,12 @@ prepare:
 	# 	mkdir shp; \
 	# 	ogr2ogr -f "ESRI Shapefile" -t_srs EPSG:4326 -clipsrc 33861.260000 777542.880000 330838.690000 959747.440000 shp/ pedestriancrashes.vrt; \
 	# 	mv ../../data.csv ../../pedestriancrashes.csv;
+
+	# download MA outline
+	cd data/downloaded; \
+		curl http://wsgw.mass.gov/data/gispub/shape/state/outlin.zip > outlin.zip; \
+		unzip outlin.zip; \
+		ogr2ogr -f "ESRI Shapefile" -s_srs EPSG:26986 -t_srs EPSG:4326 MA.shp outlinp1.shp;
 
 	# download MA towns
 	cd data/downloaded; \
@@ -69,36 +79,36 @@ prepare:
 	# get top 5 pedestrian crashes
 	ogr2ogr -t_srs EPSG:4326 -f GeoJSON data/downloaded/clusters.json "http://services.massdot.state.ma.us/ArcGIS/rest/services/Crash/2011CrashClusters/MapServer/3/query?where=RANK%20IN%20(1,2,3,4,5)&outfields=*&f=json" OGRGeoJSON
 
+
+
 encodetiles:
 
 	cd data; \
 		rm -rf tiles; mkdir tiles; cd tiles; \
-		ogr2ogr -f CSV -lco GEOMETRY=AS_XY temp.csv ../downloaded/pedestriancrashes/shp/pedestriancrashes.shp; \
+		ogr2ogr -clipsrc -73.508240 41.237962 -69.927802 42.886818 -f CSV -lco GEOMETRY=AS_XY temp.csv ../downloaded/pedestriancrashes/shp/pedestriancrashes.shp; \
 		csvcut temp.csv -c 2,1 | tail -n +2 > pedestriancrashes.csv; \
-		cat pedestriancrashes.csv | ~/Documents/other/datamaps/encode -o data -z 16;
+		cat pedestriancrashes.csv | ~/Documents/other/datamaps/encode -o data -z 18;
+
+
 
 maketiles:
 
 	cd data/tiles; \
 		rm -f test.png; \
+		~/Documents/other/datamaps/enumerate \
+			-z18 \
+			data | \
+		xargs \
+			-L1 \
+			-P8 \
 		~/Documents/other/datamaps/render \
-			-t 255 \
+			-o pedestriancrashes \
+			-t 0 \
 			-pg1 \
 			-B 10:0.05917:1.23 \
-			-c FF0000 \
-			-A -- data 12 42.235336 -71.172228 42.392132 -71.000377 \
-			> test.png;
+			-c FF0000; \
+		mb-util pedestriancrashes pedestriancrashes.mbtiles;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
+alltiles: encodetiles maketiles
