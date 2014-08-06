@@ -9,17 +9,24 @@ globe.graphic = function() {
 		}
 	}
 
-	// create the map
-	var map = L.map($('#gf .content').get(0), {
-		attributionControl: false
+	var noStreetsLayer = L.tileLayer('http://{s}.tiles.mapbox.com/v4/gabriel-florit.j5k6made/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoiZ2FicmllbC1mbG9yaXQiLCJhIjoiVldqX21RVSJ9.Udl7GDHMsMh8EcMpxIr2gA', {
+		minZoom: 8,
+		maxZoom: 14
 	});
 
-	// create a map in the "map" div, set the view to a given place and zoom
-	map.setView([51.505, -0.09], 13);
+	var streetsLayer = L.tileLayer('http://{s}.tiles.mapbox.com/v4/gabriel-florit.j5dk3824/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoiZ2FicmllbC1mbG9yaXQiLCJhIjoiVldqX21RVSJ9.Udl7GDHMsMh8EcMpxIr2gA', {
+		minZoom: 15,
+		maxZoom: 18
+	});
 
-	// add an OpenStreetMap tile layer
-	L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
-		attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-	}).addTo(map);
+	// create the map
+	var map = L.map($('#gf .content').get(0), {
+		center: [42.3581, -71.0636],
+		minZoom: 8,
+		maxZoom: 18,
+		zoom: 13,
+		attributionControl: false,
+		layers: [noStreetsLayer, streetsLayer]
+	});
 
 };
