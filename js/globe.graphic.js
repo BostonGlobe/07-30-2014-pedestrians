@@ -1,8 +1,10 @@
 globe.graphic = function() {
+
+	var master = $('#gf');
 	
 	// if we're on touch, add the mobile template
 	if (Modernizr.touch) {
-		globe.graphicMobile($('#gf .content'), $('#gf .subtitle, #gf .source-and-credit'));
+		globe.graphicMobile($('.content', master), $('.subtitle, .source-and-credit', master));
 
 		if (navigator.userAgent.match(/iPad;.*CPU.*OS 7_\d/i)) {
 			$('html').addClass('ipad ios7');
@@ -20,18 +22,42 @@ globe.graphic = function() {
 	});
 
 	// create the map
-	var map = L.map($('#gf .content').get(0), {
+	var map = L.map($('.content', master).get(0), {
 		center: [42.3581, -71.0636],
 		minZoom: 8,
 		maxZoom: 18,
 		zoom: 9,
 		attributionControl: false,
-		layers: [noStreetsLayer, streetsLayer]
+		layers: [noStreetsLayer, streetsLayer],
+		pan: {
+			animate: true
+		}
 	});
 
-// topojson.feature(globe.graphic.clusters, globe.graphic.clusters.objects.clusters)
+	var clusters = topojson.feature(globe.graphic.clusters, globe.graphic.clusters.objects.clusters);
 
+	var clustersGroup = L.geoJson(clusters, {
+		style: function (feature) {
+			return {
+				color: 'blue'
+			}
+		},
+		onEachFeature: function (feature, layer) {
+			layer.on('click', function(a, b, c, d) {
+			});
+		}
+	});
 
+	clustersGroup.addTo(map);
 
+	var clusterIndex = 0;
+
+	$('.begintour', master).click(function(e) {
+		e.preventDefault();
+
+		// navigate to next
+		map.fitBounds(clustersGroup.getLayers()[clusterIndex++ % 5].getBounds());
+
+	})
 
 };
