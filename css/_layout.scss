@@ -15,4 +15,40 @@
 	.begintour {
 		text-transform: uppercase;
 	}
+
+	.leaflet-bottom.leaflet-left {
+		width: 100%;
+		bottom: 50%;
+
+		.leaflet-bar {
+			border: 2px solid rgba(0, 0, 0, 0);
+			box-shadow: none;
+		}
+	}
+
+	.leaflet-bar.back-to-start a {
+		width: 8em;
+	}
+
+	.leaflet-bottom.leaflet-left {
+		.leaflet-bar.see-hotspots,
+		.leaflet-bar.explore-on-my-own {
+			margin-left: 0;
+			margin-right: 0;
+			margin-bottom: 0;
+			float: none;
+
+			a {
+				margin: 0 auto;
+			}
+		}
+	}
+
+	.leaflet-bar.see-hotspots,
+	.leaflet-bar.explore-on-my-own {
+		a {
+			width: 14em;
+		}
+	}
+
 }

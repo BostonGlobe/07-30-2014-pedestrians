@@ -78,9 +78,9 @@ prepare:
 
 	# get top 5 pedestrian crashes
 	cd data/downloaded; \
-		ogr2ogr -select CrashCount,NUM_FATAL,NUM_INJURY,NUM_NONINJ,RANK,TOWNS -f GeoJSON -t_srs EPSG:4326 clusters.geojson "http://services.massdot.state.ma.us/ArcGIS/rest/services/Crash/2011CrashClusters/MapServer/3/query?where=RANK%20IN%20(1,2,3,4,5)&outfields=*&f=json" OGRGeoJSON; \
-		topojson -s 0.00000000001 clusters.geojson > clusters.topojson; \
-		{ echo 'globe.graphic.clusters='; cat clusters.topojson; echo ';'; } > ../../js/globe.graphic.clusters.js;
+		ogr2ogr -select CrashCount,NUM_FATAL,NUM_INJURY,NUM_NONINJ,RANK,TOWNS -t_srs EPSG:4326 clusters.shp "http://services.massdot.state.ma.us/ArcGIS/rest/services/Crash/2011CrashClusters/MapServer/3/query?where=RANK%20IN%20(1,2,3)&outfields=*&f=json" OGRGeoJSON; \
+		mapshaper clusters.shp -e "bounds=$.bounds" -f geojson -o clusters.geojson; \
+		{ echo 'globe.graphic.clusters='; cat clusters.geojson; echo ';'; } > ../../js/globe.graphic.clusters.js;
 
 
 
