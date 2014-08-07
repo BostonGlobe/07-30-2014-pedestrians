@@ -15,72 +15,72 @@ R_deploy:
 
 prepare:
 
-	# cd data; rm -rf downloaded; mkdir downloaded;
+	cd data; rm -rf downloaded; mkdir downloaded;
+
+	# convert crashes to shapefile
+	cd data/downloaded; \
+		ogr2ogr -f "ESRI Shapefile" pedestriancrashes ../pedestriancrashes.csv; \
+		cd pedestriancrashes; \
+		cp ../../pedestriancrashes.csv pedestriancrashes.csv; \
+		cp ../../pedestriancrashes.vrt pedestriancrashes.vrt; \
+		mkdir shp; \
+		ogr2ogr -f "ESRI Shapefile" -t_srs EPSG:4326 shp/ pedestriancrashes.vrt;
 
 	# # convert crashes to shapefile
 	# cd data/downloaded; \
+	# 	cp ../pedestriancrashes.csv ../data.csv; \
+	# 	csvgrep ../data.csv -c "City/Town" -r "BOSTON" > ../pedestriancrashes.csv; \
 	# 	ogr2ogr -f "ESRI Shapefile" pedestriancrashes ../pedestriancrashes.csv; \
 	# 	cd pedestriancrashes; \
 	# 	cp ../../pedestriancrashes.csv pedestriancrashes.csv; \
 	# 	cp ../../pedestriancrashes.vrt pedestriancrashes.vrt; \
 	# 	mkdir shp; \
-	# 	ogr2ogr -f "ESRI Shapefile" -t_srs EPSG:4326 shp/ pedestriancrashes.vrt;
+	# 	ogr2ogr -f "ESRI Shapefile" -t_srs EPSG:4326 -clipsrc 33861.260000 777542.880000 330838.690000 959747.440000 shp/ pedestriancrashes.vrt; \
+	# 	mv ../../data.csv ../../pedestriancrashes.csv;
 
-	# # # convert crashes to shapefile
-	# # cd data/downloaded; \
-	# # 	cp ../pedestriancrashes.csv ../data.csv; \
-	# # 	csvgrep ../data.csv -c "City/Town" -r "BOSTON" > ../pedestriancrashes.csv; \
-	# # 	ogr2ogr -f "ESRI Shapefile" pedestriancrashes ../pedestriancrashes.csv; \
-	# # 	cd pedestriancrashes; \
-	# # 	cp ../../pedestriancrashes.csv pedestriancrashes.csv; \
-	# # 	cp ../../pedestriancrashes.vrt pedestriancrashes.vrt; \
-	# # 	mkdir shp; \
-	# # 	ogr2ogr -f "ESRI Shapefile" -t_srs EPSG:4326 -clipsrc 33861.260000 777542.880000 330838.690000 959747.440000 shp/ pedestriancrashes.vrt; \
-	# # 	mv ../../data.csv ../../pedestriancrashes.csv;
+	# download MA outline
+	cd data/downloaded; \
+		curl http://wsgw.mass.gov/data/gispub/shape/state/outlin.zip > outlin.zip; \
+		unzip outlin.zip; \
+		ogr2ogr -f "ESRI Shapefile" -s_srs EPSG:26986 -t_srs EPSG:4326 MA.shp outlinp1.shp;
 
-	# # download MA outline
-	# cd data/downloaded; \
-	# 	curl http://wsgw.mass.gov/data/gispub/shape/state/outlin.zip > outlin.zip; \
-	# 	unzip outlin.zip; \
-	# 	ogr2ogr -f "ESRI Shapefile" -s_srs EPSG:26986 -t_srs EPSG:4326 MA.shp outlinp1.shp;
+	# download MA towns
+	cd data/downloaded; \
+		curl http://wsgw.mass.gov/data/gispub/shape/state/towns.zip > towns.zip; \
+		unzip towns.zip; \
+		ogr2ogr -f "ESRI Shapefile" -t_srs EPSG:4326 MA_TOWNS.shp TOWNS_POLYM.shp;
 
-	# # download MA towns
-	# cd data/downloaded; \
-	# 	curl http://wsgw.mass.gov/data/gispub/shape/state/towns.zip > towns.zip; \
-	# 	unzip towns.zip; \
-	# 	ogr2ogr -f "ESRI Shapefile" -t_srs EPSG:4326 MA_TOWNS.shp TOWNS_POLYM.shp;
+	# download sub-county population estimates for 2010s
+	cd data/downloaded; \
+		curl https://www.census.gov/popest/data/cities/totals/2013/files/SUB-EST2013_ALL.csv \
+			| iconv -f ISO-8859-1 -t utf-8 \
+			| csvgrep -c SUMLEV -r '^040|061' \
+			| csvgrep -c STNAME -r 'Massachusetts' \
+			| csvsort -c SUMLEV,NAME \
+			| csvcut -C SUMLEV,STATE,COUNTY,PLACE,COUSUB,CONCIT,FUNCSTAT,STNAME,CENSUS2010POP,ESTIMATESBASE2010 \
+			> towns_2010s.csv
 
-	# # download sub-county population estimates for 2010s
-	# cd data/downloaded; \
-	# 	curl https://www.census.gov/popest/data/cities/totals/2013/files/SUB-EST2013_ALL.csv \
-	# 		| iconv -f ISO-8859-1 -t utf-8 \
-	# 		| csvgrep -c SUMLEV -r '^040|061' \
-	# 		| csvgrep -c STNAME -r 'Massachusetts' \
-	# 		| csvsort -c SUMLEV,NAME \
-	# 		| csvcut -C SUMLEV,STATE,COUNTY,PLACE,COUSUB,CONCIT,FUNCSTAT,STNAME,CENSUS2010POP,ESTIMATESBASE2010 \
-	# 		> towns_2010s.csv
+	# download sub-county population estimates for 2000s
+	cd data/downloaded; \
+		curl https://www.census.gov/popest/data/intercensal/cities/files/SUB-EST00INT.csv \
+			| iconv -f ISO-8859-1 -t utf-8 \
+			| csvgrep -c SUMLEV -r '^040|061' \
+			| csvgrep -c STNAME -r 'Massachusetts' \
+			| csvsort -c SUMLEV,NAME \
+			| csvcut -C SUMLEV,STATE,COUNTY,PLACE,COUSUB,STNAME,ESTIMATESBASE2000,CENSUS2010POP \
+			> towns_2000s.csv
 
-	# # download sub-county population estimates for 2000s
-	# cd data/downloaded; \
-	# 	curl https://www.census.gov/popest/data/intercensal/cities/files/SUB-EST00INT.csv \
-	# 		| iconv -f ISO-8859-1 -t utf-8 \
-	# 		| csvgrep -c SUMLEV -r '^040|061' \
-	# 		| csvgrep -c STNAME -r 'Massachusetts' \
-	# 		| csvsort -c SUMLEV,NAME \
-	# 		| csvcut -C SUMLEV,STATE,COUNTY,PLACE,COUSUB,STNAME,ESTIMATESBASE2000,CENSUS2010POP \
-	# 		> towns_2000s.csv
+	# create a csv of MA city/town population estimates for 2000-2010s
+	cd data/downloaded; \
+		csvjoin -c NAME towns_2000s.csv towns_2010s.csv \
+		| csvcut -C 13 \
+		> towns_2000-2010s.csv
 
-	# # create a csv of MA city/town population estimates for 2000-2010s
-	# cd data/downloaded; \
-	# 	csvjoin -c NAME towns_2000s.csv towns_2010s.csv \
-	# 	| csvcut -C 13 \
-	# 	> towns_2000-2010s.csv
-
-	# # get top 5 pedestrian crashes
-	# cd data/downloaded; \
-	# 	ogr2ogr -select CrashCount,NUM_FATAL,NUM_INJURY,NUM_NONINJ,RANK,TOWNS -f GeoJSON -t_srs EPSG:4326 clusters.geojson "http://services.massdot.state.ma.us/ArcGIS/rest/services/Crash/2011CrashClusters/MapServer/3/query?where=RANK%20IN%20(1,2,3,4,5)&outfields=*&f=json" OGRGeoJSON; \
-	# 	topojson -s 0.00000000001 clusters.geojson > clusters.topojson; \
-	# 	{ echo 'globe.graphic.clusters='; cat clusters.topojson; echo ';'; } > ../../js/globe.graphic.clusters.js;
+	# get top 5 pedestrian crashes
+	cd data/downloaded; \
+		ogr2ogr -select CrashCount,NUM_FATAL,NUM_INJURY,NUM_NONINJ,RANK,TOWNS -f GeoJSON -t_srs EPSG:4326 clusters.geojson "http://services.massdot.state.ma.us/ArcGIS/rest/services/Crash/2011CrashClusters/MapServer/3/query?where=RANK%20IN%20(1,2,3,4,5)&outfields=*&f=json" OGRGeoJSON; \
+		topojson -s 0.00000000001 clusters.geojson > clusters.topojson; \
+		{ echo 'globe.graphic.clusters='; cat clusters.topojson; echo ';'; } > ../../js/globe.graphic.clusters.js;
 
 
 
