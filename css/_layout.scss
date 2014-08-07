@@ -10,6 +10,21 @@
 			height: 100%;
 		}
 
+		.details {
+			position: absolute;
+			z-index: 100;
+			background: rgba(255,255,255,0.85);
+			bottom: 0;
+			right: 0;
+			width: 20em;
+
+			.touch & {
+				width: 100%;
+				left: 0;
+				right: 0;
+			}
+		}
+
 		.buttons {
 
 			position: absolute;
