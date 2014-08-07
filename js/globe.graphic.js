@@ -24,9 +24,14 @@ globe.graphic = function() {
 		center: [42.3581, -71.0636],
 		minZoom: 8,
 		maxZoom: 18,
-		zoom: 10,
+		zoom: 9,
 		attributionControl: false,
 		layers: [noStreetsLayer, streetsLayer]
 	});
+
+// topojson.feature(globe.graphic.clusters, globe.graphic.clusters.objects.clusters)
+
+
+
 
 };
