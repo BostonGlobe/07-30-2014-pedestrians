@@ -34,85 +34,119 @@ globe.graphic = function() {
 		}
 	});
 
-	// var BackToStartControl = L.Control.extend({
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+	// var ExploreOnMyOwnControl = L.Control.extend({
 	// 	options: {
-	// 		position: 'topright'
+	// 		position: 'bottomleft'
 	// 	},
 
 	// 	onAdd: function (map) {
 	// 		// create the control container with a particular class name
-	// 		var container = L.DomUtil.create('div', 'leaflet-bar back-to-start');
-	// 		container.innerHTML = '<a href="#">Back to start</a>';
+	// 		var container = L.DomUtil.create('div', 'leaflet-bar explore-on-my-own');
+	// 		container.innerHTML = '<a href="#">Explore on my own</a>';
 
-	// 		L.DomEvent.addListener(container, 'click', function(a, b, c, d) {
+	// 		L.DomEvent.addListener(container, 'click', function() {
+
+	// 			// collapse top drawer
+	// 			if ($('#gf .mobile-header .navicon').hasClass('minus')) {
+	// 				$('#gf .mobile-header .navicon').click();	
+	// 			}
+
+	// 			// remove "explore on my own"
+	// 			map.removeControl(exploreOnMyOwn);
+
+	// 			// remove "details"
+	// 			// map.removeControl(details);
+
+	// 			// is seeHotspots on the map? if not, add it
 	// 			debugger;
+
+	// 			// place "see hotspots" on top right
+	// 			seeHotspots.setPosition('topright');
 	// 		});
 
 	// 		return container;
 	// 	}
 	// });
 
-	var ExploreOnMyOwnControl = L.Control.extend({
-		options: {
-			position: 'bottomleft'
-		},
+	// var SeeHotspotsControl = L.Control.extend({
+	// 	options: {
+	// 		position: 'bottomleft'
+	// 	},
 
-		onAdd: function (map) {
-			// create the control container with a particular class name
-			var container = L.DomUtil.create('div', 'leaflet-bar explore-on-my-own');
-			container.innerHTML = '<a href="#">Explore on my own</a>';
+	// 	onAdd: function (map) {
+	// 		// create the control container with a particular class name
+	// 		var container = L.DomUtil.create('div', 'leaflet-bar see-hotspots');
+	// 		container.innerHTML = '<a href="#">See hotspots</a>';
 
-			L.DomEvent.addListener(container, 'click', function(a, b, c, d) {
+	// 		L.DomEvent.addListener(container, 'click', function() {
 
-				// collapse top drawer
-				if ($('#gf .mobile-header .navicon').hasClass('minus')) {
-					$('#gf .mobile-header .navicon').click();	
-				}
+	// 			// collapse top drawer
+	// 			if ($('#gf .mobile-header .navicon').hasClass('minus')) {
+	// 				$('#gf .mobile-header .navicon').click();	
+	// 			}
 
-				// remove "explore on my own"
-				map.removeControl(exploreOnMyOwn);
+	// 			// remove "explore on my own"
+	// 			map.removeControl(seeHotspots);
 
-				// place "see hotspots" on top right
-				seeHotspots.setPosition('topright');
-			});
+	// 			// place "see hotspots" on top right
+	// 			exploreOnMyOwn.setPosition('topright');
 
-			return container;
-		}
-	});
+	// 			// add "details"
+	// 			map.addControl(details);
+	// 			details.update({
+	// 				town: 'Chelseass',
+	// 				text: 'Lorem ipsum Reprehenderit exercitation proident Excepteur eiusmod non ea voluptate in elit Duis labore magna irure in non pariatur pariatur officia velit tempor fugiat ex reprehenderit nostrud ea consectetur laborum.'
+	// 			});
+	// 		});
 
-	var SeeHotspotsControl = L.Control.extend({
-		options: {
-			position: 'bottomleft'
-		},
+	// 		return container;
+	// 	}
+	// });
 
-		onAdd: function (map) {
-			// create the control container with a particular class name
-			var container = L.DomUtil.create('div', 'leaflet-bar see-hotspots');
-			container.innerHTML = '<a href="#">See hotspots</a>';
+	// var DetailsControl = L.Control.extend({
+	// 	options: {
+	// 		position: 'bottomright'
+	// 	},
 
-			L.DomEvent.addListener(container, 'click', function(a, b, c, d) {
+	// 	onAdd: function (map) {
+	// 		// create the control container with a particular class name
+	// 		this._div = L.DomUtil.create('div', 'leaflet-bar details');
 
-				// collapse top drawer
-				if ($('#gf .mobile-header .navicon').hasClass('minus')) {
-					$('#gf .mobile-header .navicon').click();	
-				}
+	// 		return this._div;
+	// 	},
 
-				// remove "explore on my own"
-				map.removeControl(seeHotspots);
+	// 	update: function(props) {
+	// 		this._div.innerHTML = '<div class="town">' + props.town + '</div><div class="next">Next</div><div class="text">' + props.text + '</div>';
+	// 	}
+	// });
 
-				// place "see hotspots" on top right
-				exploreOnMyOwn.setPosition('topright');
-			});
+	// var exploreOnMyOwn = new ExploreOnMyOwnControl();
+	// var seeHotspots = new SeeHotspotsControl();
+	// var details = new DetailsControl();
 
-			return container;
-		}
-	});
+	// map.addControl(exploreOnMyOwn);
+	// map.addControl(seeHotspots);
 
-	var exploreOnMyOwn = new ExploreOnMyOwnControl();
-	map.addControl(exploreOnMyOwn);
+	// $(master).on('click', '.leaflet-bar.details .next', function(e) {
+	// });
 
-	var seeHotspots = new SeeHotspotsControl();
-	map.addControl(seeHotspots);
 
 	// map.addControl(new seeHotspots());
 
