@@ -36,6 +36,8 @@ globe.graphic = function() {
 		}
 	});
 
+	var hotspotIndex = 0;
+
 	var fsm = StateMachine.create({
 		"initial": "splash",
 		"events": [
@@ -58,8 +60,13 @@ globe.graphic = function() {
 		],
 		"callbacks": {
 			onhotspot:  function(event, from, to, msg) {
-				console.log('entering hotspot');
 				graphicMobile && graphicMobile.collapseDrawer();
+
+				// are we coming from splash?
+				// if so, reposition the buttons
+				if (from === 'splash') {
+					$('.buttons', master).removeClass('center').addClass('topright');
+				}
 
 				// hide this button
 				$('.hotspots.button', master).hide();
@@ -67,30 +74,25 @@ globe.graphic = function() {
 				// show other button
 				$('.explore.button', master).show();
 
-				// are we coming from splash?
-				// if so, reposition the buttons
-				if (from === 'splash') {
-					$('.buttons', master).removeClass('center').addClass('topright');
-				}
+				populateDetails(hotspotIndex++);
 
 				// show detail
 				$('.details', master).show();
 			},
 			onexplore:  function(event, from, to, msg) {
-				console.log('entering explore');
 				graphicMobile && graphicMobile.collapseDrawer();
+
+				// are we coming from splash?
+				// if so, reposition the buttons
+				if (from === 'splash') {
+					$('.buttons', master).removeClass('center').addClass('topright');
+				}
 
 				// hide this button
 				$('.explore.button', master).hide();
 
 				// show other button
 				$('.hotspots.button', master).show();
-
-				// are we coming from splash?
-				// if so, reposition the buttons
-				if (from === 'splash') {
-					$('.buttons', master).removeClass('center').addClass('topright');
-				}
 
 				// hide detail
 				$('.details', master).hide();
@@ -105,5 +107,27 @@ globe.graphic = function() {
 	$('.explore.button', master).click(function() {
 		fsm.clickExplore();
 	});
+
+	$('.details', master).on('click', '.next', function() {
+		populateDetails(hotspotIndex++);
+	});
+
+	function populateDetails(index) {
+
+		var modulo = index % globe.graphic.clusters.length;
+
+		var datum = globe.graphic.clusters[modulo];
+
+		map.fitBounds([
+			[datum.bounds[1], datum.bounds[0]],
+			[datum.bounds[3], datum.bounds[2]]
+		]);
+
+		$('.details').html(window.JST['hotspot.template']({
+			town: datum.TOWNS,
+			text: 'Lorem ipsum Eu nostrud non dolore et incididunt officia velit ad ea cillum commodo aliqua officia cillum et nostrud pariatur aliquip ut deserunt proident fugiat irure dolore ullamco fugiat adipisicing incididunt voluptate tempor irure esse officia commodo aliquip enim.',
+			next: (globe.graphic.clusters.length - modulo) != 1 ? 'Next' : 'Start over'
+		}));
+	}
 
 };
