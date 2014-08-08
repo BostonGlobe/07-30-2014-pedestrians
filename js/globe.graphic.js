@@ -74,6 +74,7 @@ globe.graphic = function() {
 				// show other button
 				$('.explore.button', master).show();
 
+				// populate hotspot details
 				populateDetails(hotspotIndex++);
 
 				// show detail
@@ -93,6 +94,9 @@ globe.graphic = function() {
 
 				// show other button
 				$('.hotspots.button', master).show();
+
+				// reset map view
+				map.setView([42.3581, -71.0636], 9);
 
 				// hide detail
 				$('.details', master).hide();
