@@ -62,7 +62,10 @@ globe.graphic = function() {
 		],
 		"callbacks": {
 			onhotspot:  function(event, from, to, msg) {
-				graphicMobile && graphicMobile.collapseDrawer();
+
+				if (graphicMobile) {
+					graphicMobile.collapseDrawer();					
+				}
 
 				// are we coming from splash?
 				// if so, reposition the buttons
@@ -83,7 +86,10 @@ globe.graphic = function() {
 				$('.details', master).show();
 			},
 			onexplore:  function(event, from, to, msg) {
-				graphicMobile && graphicMobile.collapseDrawer();
+
+				if (graphicMobile) {
+					graphicMobile.collapseDrawer();					
+				}
 
 				// are we coming from splash?
 				// if so, reposition the buttons
