@@ -17,11 +17,31 @@
 			bottom: 0;
 			right: 0;
 			width: 20em;
+			@include rhythm(0, 1/2, 1/2, 0);
+			padding-left: 1em;
+			padding-right: 1em;
 
 			.touch & {
 				width: 100%;
 				left: 0;
 				right: 0;
+			}
+
+			.town {
+				font-weight: bold;
+			}
+
+			.text {
+				@include leading-border();
+				@include rhythm(1/2, 1/2, 0, 0);
+				border-width: 1px;
+			}
+
+			.next {
+				position: absolute;
+				@include rhythm(0, 0, 0, 0);
+				right: 1em;
+				text-transform: uppercase;
 			}
 		}
 
@@ -43,8 +63,9 @@
 			}
 
 			.button {
-				margin: 0 auto;
-				margin-bottom: 1em;
+				@include rhythm(0, 0, 0, 1/2);
+				margin-left: auto;
+				margin-right: auto;
 				background: rgba(255,255,255,1);
 				padding: 0.35em 2em;
 				width: 10em;
@@ -64,118 +85,6 @@
 
 		}
 
-		// .see-hotspots,
-		// .explore {
-		// 	position: absolute;
-		// 	top: 35%;
-		// 	left: 0;
-		// 	right: 0;
-		// 	text-align: center;
-		// 	z-index: 100;
-
-		// 	.inner {
-		// 		background: rgba(255,255,255,1);
-		// 		display: inline-block;
-		// 		padding: 0.35em 2em;
-		// 		width: 10em;
-		// 		border-radius: 4px;
-		// 		box-shadow: 0 1px 5px rgba(0, 0, 0, 0.65);
-
-		// 		a {
-		// 			text-decoration: none;
-		// 			cursor: pointer;
-
-		// 			&:hover {
-		// 				text-decoration: underline;
-		// 			}
-		// 		}
-		// 	}
-		// }
-
-		// .explore {
-		// 	top: 45%;
-		// }
-
 	}
-
-
-	// .leaflet-bottom.leaflet-left {
-
-	// 	width: 100%;
-	// 	bottom: 50%;
-
-	// 	.leaflet-bar {
-	// 		border: 2px solid rgba(0, 0, 0, 0);
-	// 		box-shadow: none;
-
-	// 		&.see-hotspots,
-	// 		&.explore-on-my-own {
-	// 			margin-left: 0;
-	// 			margin-right: 0;
-	// 			margin-bottom: 0;
-	// 			float: none;
-
-	// 			a {
-	// 				margin: 0 auto;
-	// 			}
-	// 		}
-	// 	}
-
-	// }
-
-	// .leaflet-bottom.leaflet-right {
-
-	// 	width: 100%;
-
-	// 	.details {
-	
-	// 		width: 100%;
-	// 		background: rgba(255,255,255,0.85);
-
-	// 		&.leaflet-bar {
-	// 			border: 2px solid rgba(0, 0, 0, 0);
-	// 			box-shadow: none;
-
-	// 			margin-right: 0;
-	// 			margin-bottom: 0;
-	// 			border-radius: 0;
-	// 			padding: 10px;
-	// 			padding-bottom: 6px;
-
-	// 			.town {
-	// 				font-weight: bold;
-	// 			}
-
-	// 			.text {
-	// 				border-top: solid black 1px;
-	// 				margin-top: 10px;
-	// 				padding-top: 10px;
-	// 			}
-
-	// 			.next {
-	// 				position: absolute;
-	// 				top: 4px;
-	// 				right: 10px;
-	// 				background: none;
-	// 				text-transform: uppercase;
-	// 				border: solid black 1px;
-	// 				padding: 4px 30px;
-	// 				cursor: pointer;
-
-	// 				&:hover {
-	// 					text-decoration: underline;
-	// 				}
-	// 			}
-
-	// 		}
-	// 	}
-	// }
-
-	// .leaflet-bar.see-hotspots,
-	// .leaflet-bar.explore-on-my-own {
-	// 	a {
-	// 		width: 14em;
-	// 	}
-	// }
 
 }
