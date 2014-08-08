@@ -37,13 +37,73 @@ globe.graphic = function() {
 	});
 
 	var fsm = StateMachine.create({
-		initial: 'splash',
-		events: [
-			{ name: 'warn',  from: 'green',  to: 'yellow' },
-			{ name: 'panic', from: 'yellow', to: 'red'    },
-			{ name: 'calm',  from: 'red',    to: 'yellow' },
-			{ name: 'clear', from: 'yellow', to: 'green'  }
-		]
+		"initial": "splash",
+		"events": [
+			{
+				"name": "clickHotspot",
+				"from": [
+					"splash",
+					"explore"
+				],
+				"to": "hotspot"
+			},
+			{
+				"name": "clickExplore",
+				"from": [
+					"splash",
+					"hotspot"
+				],
+				"to": "explore"
+			}
+		],
+		"callbacks": {
+			onhotspot:  function(event, from, to, msg) {
+				console.log('entering hotspot');
+				graphicMobile && graphicMobile.collapseDrawer();
+
+				// hide this button
+				$('.hotspots.button', master).hide();
+
+				// show other button
+				$('.explore.button', master).show();
+
+				// are we coming from splash?
+				// if so, reposition the buttons
+				if (from === 'splash') {
+					$('.buttons', master).removeClass('center').addClass('topright');
+				}
+
+				// show detail
+				$('.details', master).show();
+			},
+			onexplore:  function(event, from, to, msg) {
+				console.log('entering explore');
+				graphicMobile && graphicMobile.collapseDrawer();
+
+				// hide this button
+				$('.explore.button', master).hide();
+
+				// show other button
+				$('.hotspots.button', master).show();
+
+				// are we coming from splash?
+				// if so, reposition the buttons
+				if (from === 'splash') {
+					$('.buttons', master).removeClass('center').addClass('topright');
+				}
+
+				// hide detail
+				$('.details', master).hide();
+			}
+		}
+	});
+
+	$('.hotspots.button', master).click(function() {
+		fsm.clickHotspot();
+	});
+
+	$('.explore.button', master).click(function() {
+		fsm.clickExplore();
 	});
 
 };
