@@ -63,24 +63,25 @@
 
 		.buttons {
 
+			display: none;
 			position: absolute;
 			z-index: 100;
 			text-align: center;
 
 			&.center {
-				bottom: 60%;
+				top: 12px;
 				left: 0;
 				right: 0;
 			}
 
 			.touch & {
 				&.center {
+					top: initial;
 					bottom: 5%;
 					left: 0;
 					right: 0;
 				}
 			}
-
 
 			&.topright {
 				top: 12px;

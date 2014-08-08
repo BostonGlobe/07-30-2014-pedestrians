@@ -36,6 +36,8 @@ globe.graphic = function() {
 		}
 	});
 
+	$('.buttons', master).show();
+
 	var hotspotIndex = 0;
 
 	var fsm = StateMachine.create({
@@ -104,11 +106,13 @@ globe.graphic = function() {
 		}
 	});
 
-	$('.hotspots.button', master).click(function() {
+	$('.hotspots.button', master).click(function(e) {
+		e.preventDefault();
 		fsm.clickHotspot();
 	});
 
-	$('.explore.button', master).click(function() {
+	$('.explore.button', master).click(function(e) {
+		e.preventDefault();
 		fsm.clickExplore();
 	});
 
