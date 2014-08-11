@@ -178,7 +178,7 @@ ggplot(data,aes(DATE,rate)) +
   ylim(c(0,max(data$rate)))
 ```
 
-The state's population hasn't increased significantly, hence the rate looks pretty similar to the raw count. So what's going on? What explains the significant increase in crashes starting in 2010? According to MassDOT(?) expert FirstName LastName, in 2010 municipalities started working on improving accident reporting. This is important because better reporting leads to more money from the state.
+The state's population hasn't increased significantly, hence the rate looks pretty similar to the raw count.
 
 ***
 
