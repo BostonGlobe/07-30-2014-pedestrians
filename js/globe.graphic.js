@@ -1,5 +1,7 @@
 globe.graphic = function() {
 
+	globe.graphic.clusters = _.sortBy(globe.graphic.clusters, 'RANK');
+
 	var master = $('#gf');
 
 	var graphicMobile;
@@ -139,7 +141,7 @@ globe.graphic = function() {
 
 		$('.details').html(window.JST['hotspot.template']({
 			town: datum.TOWNS,
-			text: 'Lorem ipsum Eu nostrud non dolore et incididunt officia velit ad ea cillum commodo aliqua officia cillum et nostrud pariatur aliquip ut deserunt proident fugiat irure dolore ullamco fugiat adipisicing incididunt voluptate tempor irure esse officia commodo aliquip enim.',
+			text: datum.text,
 			next: (globe.graphic.clusters.length - modulo) != 1 ? 'Next' : 'Start over'
 		}));
 	}

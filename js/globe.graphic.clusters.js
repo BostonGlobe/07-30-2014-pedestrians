@@ -1,25 +1,2 @@
-globe.graphic.clusters = [{
-    "CrashCount": 207,
-    "NUM_FATAL": 1,
-    "NUM_INJURY": 154,
-    "NUM_NONINJ": 52,
-    "RANK": 1,
-    "TOWNS": "CHELSEA",
-    "bounds": [-71.04310312445601, 42.386972111165875, -71.02472923533955, 42.3994716574411]
-}, {
-    "CrashCount": 142,
-    "NUM_FATAL": 0,
-    "NUM_INJURY": 103,
-    "NUM_NONINJ": 39,
-    "RANK": 2,
-    "TOWNS": "FALL RIVER",
-    "bounds": [-71.168211496562, 41.68999666589288, -71.15082159334496, 41.70441073947192]
-}, {
-    "CrashCount": 103,
-    "NUM_FATAL": 0,
-    "NUM_INJURY": 79,
-    "NUM_NONINJ": 24,
-    "RANK": 3,
-    "TOWNS": "WORCESTER",
-    "bounds": [-71.8108539759306, 42.256730268536664, -71.79836042972957, 42.26789811733342]
-}];
+globe.graphic.clusters=
+[{"CrashCount":56,"NUM_FATAL":2,"NUM_INJURY":36,"NUM_NONINJ":18,"RANK":7,"TOWNS":"BOSTON","text":"The highest ranked crash cluster in Boston is in the area just west of the JFK Expressway, where 56 pedestrian crashes, two of them fatal, were reported between 2002 and 2011. But because crash data from the city still isn’t reported consistently by Boston police, Chinatown’s state ranking – along with the city’s other busy stretches – isn’t truly known. ","bounds":[-71.06749879909651,42.34903594587026,-71.05592697957734,42.35524800020669]},{"CrashCount":207,"NUM_FATAL":1,"NUM_INJURY":154,"NUM_NONINJ":52,"RANK":1,"TOWNS":"CHELSEA","text":"High-use bus stops, low rates of automobile ownership and a busy downtown all contribute to Chelsea’s status as the state’s top crash cluster, where 207 people were hit – including one person who was killed – from 2002 through 2011.","bounds":[-71.04310312445601,42.386972111165875,-71.02472923533955,42.3994716574411]},{"CrashCount":142,"NUM_FATAL":0,"NUM_INJURY":103,"NUM_NONINJ":39,"RANK":2,"TOWNS":"FALL RIVER","text":"Outside the busy Boston corridor, Fall River has worked to improve safety along Main Street in recent years, and has embraced a state program aimed at helping communities identify trouble spots. Over ten years, 142 people were struck in the large crash cluster loosely centered around Main and Columbia streets.","bounds":[-71.168211496562,41.68999666589288,-71.15082159334496,41.70441073947192]},{"CrashCount":121,"NUM_FATAL":3,"NUM_INJURY":58,"NUM_NONINJ":60,"RANK":4,"TOWNS":"CAMBRIDGE","text":"The Central Square area has been a problem for Cambridge police since at least the early nineties. Deputy Superintendent Jack Albert calls commute time “absolute chaos.” But small, steady change has helped reduce the severity of injuries to pedestrians here, of which there were 61 – including three deadly crashes – between 2002 and 2011. ","bounds":[-71.10815568382768,42.360649244983286,-71.09780877401475,42.367887903204]},{"CrashCount":86,"NUM_FATAL":1,"NUM_INJURY":54,"NUM_NONINJ":31,"RANK":5,"TOWNS":"QUINCY","text":"With a busy T and bus stop on one side and a community college on the other, the complicated intersections that make up Quincy Center were the scene of 86 pedestrian crashes reported to the state between 2002 and 2011. ","bounds":[-71.00614030486203,42.24378040500353,-70.99715118999265,42.25423280648326]}];
