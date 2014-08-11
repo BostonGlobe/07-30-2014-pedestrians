@@ -236,7 +236,7 @@ data <- population %>%
 ggplot(data,aes(DATE,rate,group=place)) +
   geom_line(aes(color=place=='BOSTON')) +
   geom_text(data=filter(data,YEAR==max(YEAR)),aes(DATE,rate,label=place),hjust=1,vjust=-0.5,size=3) +
-  ggtitle(str_c('Pedestrian crashes per capita, ',min(data$YEAR),'-',max(data$YEAR))) +
+  ggtitle(str_c('Pedestrian crashes per capita in top five largest towns, ',min(data$YEAR),'-',max(data$YEAR))) +
   ylab('crashes per 10,000') +
   theme(legend.position='none') +
   ylim(c(0,max(data$rate)))
