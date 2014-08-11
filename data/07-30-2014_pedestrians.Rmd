@@ -211,7 +211,7 @@ Boston's reporting inconsistency is striking.
 
 What if we normalize by population?
 
-```{r, fig.width=12, fig.height=7}
+```{r, fig.width=12, fig.height=7, results='asis'}
 
 # first we'll get a list of top five towns by population for the latest year
 # next we join with yearlyCrashesPerTown
@@ -240,6 +240,8 @@ ggplot(data,aes(DATE,rate,group=place)) +
   ylab('crashes per 10,000') +
   theme(legend.position='none') +
   ylim(c(0,max(data$rate)))
+
+knitr::kable(select(data, -DATE))
 ```
 
 This graph shows that Boston's reported crash rate is quite low. We could probably make a case that Boston has a substantial amount of external foot traffic - people that don't live in the city but work in the city. If we were to include that number, Boston's crash rate would go down even lower. This graph also shows how Springfield's significantly increased its reporting in 2010.
