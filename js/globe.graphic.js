@@ -38,6 +38,8 @@ globe.graphic = function() {
 		}
 	});
 
+	var clusterOutline;
+
 	$('.buttons', master).show();
 
 	var hotspotIndex = 0;
@@ -110,6 +112,11 @@ globe.graphic = function() {
 
 				// hide detail
 				$('.details', master).hide();
+
+				// hide cluster outline
+				if (clusterOutline) {
+					map.removeLayer(clusterOutline);
+				}
 			}
 		}
 	});
@@ -134,16 +141,35 @@ globe.graphic = function() {
 
 		var datum = globe.graphic.clusters[modulo];
 
-		map.fitBounds([
-			[datum.bounds[1], datum.bounds[0]],
-			[datum.bounds[3], datum.bounds[2]]
-		]);
-
 		$('.details').html(window.JST['hotspot.template']({
 			town: datum.TOWNS,
 			text: datum.text,
 			next: (globe.graphic.clusters.length - modulo) != 1 ? 'Next' : 'Start over'
 		}));
+
+		var bounds = [
+			[datum.bounds[1], datum.bounds[0]],
+			[datum.bounds[3], datum.bounds[2]]
+		];
+
+		if (clusterOutline) {
+
+			clusterOutline.setBounds(bounds);
+
+		} else {
+
+			clusterOutline = L.rectangle(bounds, {
+				color: '#FFFFFF',
+				fill: false
+			});
+
+		}
+
+		if (!map.hasLayer(clusterOutline)) {
+			map.addLayer(clusterOutline);
+		}
+
+		map.fitBounds(bounds);
 	}
 
 };
