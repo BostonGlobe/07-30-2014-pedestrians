@@ -134,7 +134,6 @@ data <- crashes %>%
   mutate(DATE=floor_date(DATE,'year')) %>%
   group_by(DATE) %>%
   summarise(count = n()) %>%
-  filter(year(DATE) >= 2002) %>%
   arrange(DATE)
 
 ggplot(data,aes(DATE,count)) +
@@ -161,7 +160,6 @@ data <- crashes %>%
   mutate(YEAR=year(DATE)) %>%
   group_by(YEAR) %>%
   summarise(count = n()) %>%
-  filter(YEAR >= 2002) %>%
   mutate(place='MASSACHUSETTS') %>%
   left_join(population,by=c('YEAR','place')) %>%
   mutate(
@@ -186,19 +184,23 @@ Can we analyse this data to see which towns are working on their reporting?
 
 ```{r, fig.width=12, fig.height=7}
 
-# get top towns by total crashes
-data <- towns %>%
-  arrange(desc(crashes)) %>%
+# first we'll get a list of top five towns by population for the latest year
+# next we join with yearlyCrashesPerTown
+data <- population %>%
+  filter(
+    YEAR == max(YEAR),
+    place != 'MASSACHUSETTS'
+  ) %>%
+  arrange(desc(population)) %>%
+  select(City.Town = place) %>%
   head(5) %>%
-  select(City.Town=TOWN) %>%
   left_join(yearlyCrashesPerTown,by='City.Town') %>%
-  mutate(DATE=as.Date(as.yearmon(YEAR))) %>%
-  filter(year(DATE) >= 2002)
+  mutate(DATE=as.Date(as.yearmon(YEAR)))
 
 ggplot(data,aes(DATE,crashes,group=City.Town)) +
   geom_line(aes(color=City.Town=='BOSTON')) +
   geom_text(data=filter(data,YEAR==max(YEAR)),aes(DATE,crashes,label=City.Town),hjust=1,vjust=-0.5,size=3) +
-  ggtitle(str_c('Towns with most pedestrian crashes, ',min(data$YEAR),'-',max(data$YEAR))) +
+  ggtitle(str_c('Pedestrian crashes in top five largest towns, ',min(data$YEAR),'-',max(data$YEAR))) +
   theme(legend.position='none') +
   ylim(c(0,max(data$crashes)))
 ```
@@ -211,21 +213,25 @@ What if we normalize by population?
 
 ```{r, fig.width=12, fig.height=7}
 
-# get top towns by total crashes
-# add yearly town population
-data <- towns %>%
-  arrange(desc(crashes)) %>%
-  head(5) %>%
-  select(City.Town=TOWN) %>%
-  left_join(yearlyCrashesPerTown,by='City.Town') %>%
-  mutate(
-    DATE=as.Date(as.yearmon(YEAR)),
-    place=as.character(City.Town)
+# first we'll get a list of top five towns by population for the latest year
+# next we join with yearlyCrashesPerTown
+# next we join with population figures
+# finally we calculate rate = crashes / population
+data <- population %>%
+  filter(
+    YEAR == max(YEAR),
+    place != 'MASSACHUSETTS'
   ) %>%
-  select(-City.Town) %>%
-  filter(year(DATE) >= 2002) %>%
-  left_join(population,by=c('YEAR','place')) %>%
-  mutate(rate=crashes/population * 10000)
+  arrange(desc(population)) %>%
+  select(City.Town = place) %>%
+  head(5) %>%
+  left_join(yearlyCrashesPerTown, by='City.Town') %>%
+  mutate(place=City.Town) %>% select(-City.Town) %>%
+  left_join(population, by=c('YEAR', 'place')) %>%
+  mutate(
+    rate=crashes/population * 10000,
+    DATE=as.Date(as.yearmon(YEAR))
+  )
 
 ggplot(data,aes(DATE,rate,group=place)) +
   geom_line(aes(color=place=='BOSTON')) +
@@ -236,7 +242,7 @@ ggplot(data,aes(DATE,rate,group=place)) +
   ylim(c(0,max(data$rate)))
 ```
 
-This graph shows that Boston's reported crash rate is quite low. We could probably make a case that Boston has a substantial amount of external foot traffic - people that don't live in the city but work in the city. If we were to include that number, Boston's crash rate would go down even lower.
+This graph shows that Boston's reported crash rate is quite low. We could probably make a case that Boston has a substantial amount of external foot traffic - people that don't live in the city but work in the city. If we were to include that number, Boston's crash rate would go down even lower. This graph also shows how Springfield's significantly increased its reporting in 2010.
 
 ***
 
@@ -250,8 +256,7 @@ data <- towns %>%
   arrange(desc(crashes)) %>%
   select(City.Town=TOWN) %>%
   left_join(yearlyCrashesPerTown,by='City.Town') %>%
-  mutate(DATE=as.Date(as.yearmon(YEAR))) %>%
-  filter(year(DATE) >= 2002)
+  mutate(DATE=as.Date(as.yearmon(YEAR)))
 
 ggplot(data,aes(DATE,crashes,group=City.Town)) +
   geom_line() +
@@ -276,8 +281,7 @@ data <- towns %>%
   arrange(desc(crashes)) %>%
   select(City.Town=TOWN) %>%
   left_join(yearlyCrashesPerTown,by='City.Town') %>%
-  mutate(DATE=as.Date(as.yearmon(YEAR))) %>%
-  filter(year(DATE) >= 2002)
+  mutate(DATE=as.Date(as.yearmon(YEAR)))
 
 ggplot(data,aes(crashes,group=YEAR)) +
   geom_histogram() +
@@ -293,8 +297,7 @@ data <- towns %>%
   arrange(desc(crashes)) %>%
   select(City.Town=TOWN) %>%
   left_join(yearlyCrashesPerTown,by='City.Town') %>%
-  mutate(DATE=as.Date(as.yearmon(YEAR))) %>%
-  filter(year(DATE) >= 2002)
+  mutate(DATE=as.Date(as.yearmon(YEAR)))
 
 ggplot(data,aes(DATE,crashes,group=DATE)) +
   geom_boxplot() +
@@ -305,7 +308,7 @@ Interesting, but not very revealing.
 
 ***
 
-How many pedestrian accidents (involving injuries) in Boston?
+How many pedestrian accidents (involving injuries) in Boston since 2010?
 
 ```{r, fig.width=12, fig.height=7, warning=FALSE, message=FALSE, results='asis'}
 
@@ -317,7 +320,7 @@ data <- crashes %>%
   ) %>%
   filter(
     City.Town == 'BOSTON',
-    YEAR > 2009
+    YEAR >= 2010
   ) %>%
   group_by(YEAR,SEVERITY) %>%
   summarise(ACCIDENTS = n())
