@@ -4,13 +4,6 @@ This graphic was generated with [generator-globegraphic](https://github.com/Bost
 
 Please note: do not reproduce Boston Globe logos or fonts without written permission.
 
-## TODO
-
-- make chart of largest towns
-- add EMS data
-- make sure that the top ad area is wiped out
-- make sure that buttons don't have blue text. looks bad.
-
 ## Install
 
 - `npm install`

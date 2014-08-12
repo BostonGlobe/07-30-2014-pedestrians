@@ -58,6 +58,13 @@
 				@include rhythm(0, 0, 0, 0);
 				right: 1em;
 				text-transform: uppercase;
+				color: white;
+				background: #444;
+				letter-spacing: 1px;
+				padding-right: 0.5em;
+				padding-left: 0.5em;
+				padding-top: 0.1em;
+				margin-top: -0.1em;
 			}
 		}
 
@@ -101,6 +108,7 @@
 				a {
 					text-decoration: none;
 					cursor: pointer;
+					color: black;
 
 					&:hover {
 						text-decoration: underline;

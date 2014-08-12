@@ -172,4 +172,8 @@ globe.graphic = function() {
 		map.fitBounds(bounds);
 	}
 
+	// if (!Modernizr.touch) {
+	// 	fsm.clickHotspot();
+	// }
+
 };
