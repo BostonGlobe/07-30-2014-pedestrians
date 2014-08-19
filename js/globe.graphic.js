@@ -8,6 +8,7 @@ globe.graphic = function() {
 	
 	// if we're on touch, add the mobile template
 	if (Modernizr.touch) {
+		$('.main-hed').html('Mass. pedestrian crashes');
 		graphicMobile = globe.graphicMobile($('.content', master), $('.subtitle, .source-and-credit', master));
 
 		if (navigator.userAgent.match(/iPad;.*CPU.*OS 7_\d/i)) {
