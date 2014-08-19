@@ -116,7 +116,6 @@ population &lt;- read.csv(&#39;downloaded/towns_2000-2010s.csv&#39;,strip.white=
 <p>Are pedestrian crashes increasing?</p>
 <pre class="r"><code># group crashes by year
 # get count
-# only look at 2002 onwards
 data &lt;- crashes %&gt;%
   mutate(DATE=floor_date(DATE,&#39;year&#39;)) %&gt;%
   group_by(DATE) %&gt;%
@@ -134,7 +133,6 @@ ggplot(data,aes(DATE,count)) +
 <p>But maybe the population is increasing as well? What if we normalize by population?</p>
 <pre class="r"><code># group crashes by year
 # get count
-# only look at 2002 onwards
 # add yearly state population
 # calculate yearly pedestrian accident rate
 data &lt;- crashes %&gt;%

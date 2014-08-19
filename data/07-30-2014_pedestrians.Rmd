@@ -131,7 +131,6 @@ Are pedestrian crashes increasing?
 
 # group crashes by year
 # get count
-# only look at 2002 onwards
 data <- crashes %>%
   mutate(DATE=floor_date(DATE,'year')) %>%
   group_by(DATE) %>%
@@ -155,7 +154,6 @@ But maybe the population is increasing as well? What if we normalize by populati
 
 # group crashes by year
 # get count
-# only look at 2002 onwards
 # add yearly state population
 # calculate yearly pedestrian accident rate
 data <- crashes %>%
