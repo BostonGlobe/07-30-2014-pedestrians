@@ -26,11 +26,13 @@ globe.graphic = function() {
 	});
 
 	// create the map
+	var initialBounds = [42.3581, -71.0636];
+	var initialZoom = 10; 
 	var map = L.map($('.content', master).get(0), {
-		center: [42.3581, -71.0636],
+		center: initialBounds,
 		minZoom: 8,
 		maxZoom: 18,
-		zoom: 9,
+		zoom: initialZoom,
 		attributionControl: false,
 		layers: [noStreetsLayer, streetsLayer],
 		pan: {
@@ -108,7 +110,7 @@ globe.graphic = function() {
 				$('.hotspots.button', master).show();
 
 				// reset map view
-				map.setView([42.3581, -71.0636], 9);
+				map.setView(initialBounds, initialZoom);
 
 				// hide detail
 				$('.details', master).hide();
