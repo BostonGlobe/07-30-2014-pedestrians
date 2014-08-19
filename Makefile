@@ -79,7 +79,7 @@ prepare:
 	# get top 5 pedestrian crashes
 	cd data/downloaded; \
 		ogr2ogr -select CrashCount,NUM_FATAL,NUM_INJURY,NUM_NONINJ,RANK,TOWNS -t_srs EPSG:4326 clusters.shp "http://services.massdot.state.ma.us/ArcGIS/rest/services/Crash/2011CrashClusters/MapServer/3/query?where=RANK%20IN%20(1,2,4,5,7)&outfields=*&f=json" OGRGeoJSON; \
-		mapshaper clusters.shp --join ../chatter.csv --join-keys=TOWNS,TOWNS -e "bounds=$$.bounds" --cut-table -f geojson -o clusters.geojson; \
+		mapshaper clusters.shp -join ../chatter.csv keys=TOWNS,TOWNS -each "bounds=$$.bounds" -o clusters.json cut-table format=geojson; \
 		{ echo 'globe.graphic.clusters='; cat clusters-table.json; echo ';'; } > ../../js/globe.graphic.clusters.js;
 
 
