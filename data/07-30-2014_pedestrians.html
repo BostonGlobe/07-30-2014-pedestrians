@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="author" content="Gabriel Florit" />
+
+
+<title>07-30-2014_pedestrians</title>
+
+<script src="07-30-2014_pedestrians_files/jquery-1.11.0/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link href="07-30-2014_pedestrians_files/bootstrap-2.3.2/css/bootstrap.min.css" rel="stylesheet" />
+<link href="07-30-2014_pedestrians_files/bootstrap-2.3.2/css/bootstrap-responsive.min.css" rel="stylesheet" />
+<script src="07-30-2014_pedestrians_files/bootstrap-2.3.2/js/bootstrap.min.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<link rel="stylesheet"
+      href="07-30-2014_pedestrians_files/highlight/default.css"
+      type="text/css" />
+<script src="07-30-2014_pedestrians_files/highlight/highlight.js"></script>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+</style>
+<div class="container-fluid main-container">
+
+
+<div id="header">
+<h1 class="title">07-30-2014_pedestrians</h1>
+<h4 class="author"><em>Gabriel Florit</em></h4>
+</div>
+
+
+<p>Let’s explore the question: are pedestrian crashes increasing? We’ll be working with the following data sources:</p>
+<ul>
+<li>pedestrian crashes from MassDOT’s <a href="http://services.massdot.state.ma.us/crashportal/CrashMapPage.aspx?Mode=Adhoc">Crash Portal</a></li>
+<li>town shapefile from <a href="http://www.mass.gov/anf/research-and-tech/it-serv-and-support/application-serv/office-of-geographic-information-massgis/datalayers/towns.html">MassGIS</a></li>
+<li>town population estimates <a href="https://www.census.gov/popest/data/datasets.html">from US Census Bureau</a></li>
+</ul>
+<p>NOTE: the following analysis was helpful during the making of <a href="http://www.bostonglobe.com/2014/08/19/mass-pedestrian-crashes/S93EfexbXWvj7fq8Z2kXEJ/story.html">Mass. pedestrian crashes</a> and <a href="https://twitter.com/NestorARamos">Nestor Ramos</a>’s story, <a href="http://www.bostonglobe.com/metro/2014/08/18/some-boston-pedestrian-accidents-aren-reported-state/oY53CQ9ijoaPNF3gfIAQzL/story.html">Most Boston pedestrian accidents go unreported</a>.</p>
+<div id="setup" class="section level3">
+<h3>Setup</h3>
+<pre class="r"><code># read shapefiles
+crashes.shp &lt;- readOGR(&#39;downloaded/pedestriancrashes/shp&#39;,&#39;pedestriancrashes&#39;,  p4s=&#39;+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs&#39;)
+towns.shp &lt;- readOGR(&#39;downloaded&#39;,&#39;MA_TOWNS&#39;, p4s=&#39;+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs&#39;)
+
+# standardize dates
+# reject bad dates, e.g. 2041
+crashes &lt;- crashes.shp@data %&gt;%
+  mutate(DATE = mdy(Crash.Date)) %&gt;%
+  filter(year(today()) &gt;= year(DATE))
+
+# calculate crashes per year for each town
+yearlyCrashesPerTown &lt;- crashes %&gt;%
+  mutate(YEAR=year(DATE)) %&gt;%
+  group_by(YEAR,City.Town) %&gt;%
+  summarise(crashes = n())
+
+# create towns dataframe
+# add town boundaries
+# add total crashes per town
+towns &lt;- towns.shp@data %&gt;%
+  cbind(fortify(gEnvelope(towns.shp,byid=T)) %&gt;%
+          mutate(id=as.numeric(id)) %&gt;%
+          group_by(id) %&gt;%
+          summarise(E=min(long),W=max(long),S=min(lat),N=max(lat)) %&gt;%
+          arrange(id)) %&gt;%
+  left_join(yearlyCrashesPerTown %&gt;%
+              group_by(City.Town) %&gt;%
+              summarise(crashes = sum(crashes)) %&gt;%
+              mutate(TOWN=City.Town) %&gt;% select(-City.Town),by=&#39;TOWN&#39;)
+
+# fortify for mapping purposes
+towns.fortified &lt;- fortify(towns.shp,region=&#39;TOWN&#39;)
+
+# read population data
+# remove &#39; Town&#39; or &#39; City&#39; suffixes from town names 
+population &lt;- read.csv(&#39;downloaded/towns_2000-2010s.csv&#39;,strip.white=T,stringsAsFactors=F) %&gt;%
+  gather(year,population,-NAME) %&gt;%
+  mutate(
+    YEAR = as.numeric(gsub(&#39;POPESTIMATE&#39;, &#39;&#39;, as.character(year))),
+    place = gsub(&#39; TOWN$| CITY$| TOWN CITY$&#39;, &#39;&#39;, toupper(NAME))
+  ) %&gt;%
+  select(-NAME,-year)</code></pre>
+</div>
+<div id="analysis" class="section level3">
+<h3>Analysis</h3>
+<p>Are pedestrian crashes increasing?</p>
+<pre class="r"><code># group crashes by year
+# get count
+# only look at 2002 onwards
+data &lt;- crashes %&gt;%
+  mutate(DATE=floor_date(DATE,&#39;year&#39;)) %&gt;%
+  group_by(DATE) %&gt;%
+  summarise(count = n()) %&gt;%
+  arrange(DATE)
+
+ggplot(data,aes(DATE,count)) +
+  geom_line() +
+  ggtitle(str_c(&#39;Massachusetts pedestrian crashes, &#39;,year(min(data$DATE)),&#39;-&#39;,year(max(data$DATE)))) +
+  xlab(&#39;year&#39;) +
+  ylim(c(0,max(data$count)))</code></pre>
+<p><img src="07-30-2014_pedestrians_files/figure-html/unnamed-chunk-3.png" title="plot of chunk unnamed-chunk-3" alt="plot of chunk unnamed-chunk-3" width="1152" /></p>
+<p>It seems so.</p>
+<hr />
+<p>But maybe the population is increasing as well? What if we normalize by population?</p>
+<pre class="r"><code># group crashes by year
+# get count
+# only look at 2002 onwards
+# add yearly state population
+# calculate yearly pedestrian accident rate
+data &lt;- crashes %&gt;%
+  mutate(YEAR=year(DATE)) %&gt;%
+  group_by(YEAR) %&gt;%
+  summarise(count = n()) %&gt;%
+  mutate(place=&#39;MASSACHUSETTS&#39;) %&gt;%
+  left_join(population,by=c(&#39;YEAR&#39;,&#39;place&#39;)) %&gt;%
+  mutate(
+    DATE=as.Date(as.yearmon(YEAR)),
+    rate=count/population * 100
+  ) %&gt;%
+  arrange(YEAR)
+
+ggplot(data,aes(DATE,rate)) +
+  geom_line() +
+  ggtitle(str_c(&#39;Massachusetts pedestrian crashes per capita, &#39;,year(min(data$DATE)),&#39;-&#39;,year(max(data$DATE)))) +
+  xlab(&#39;year&#39;) +
+  ylab(&#39;crashes per 10,000&#39;) +
+  ylim(c(0,max(data$rate)))</code></pre>
+<p><img src="07-30-2014_pedestrians_files/figure-html/unnamed-chunk-4.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" width="1152" /></p>
+<p>The state’s population hasn’t increased significantly, hence the rate looks pretty similar to the raw count.</p>
+<hr />
+<p>Can we analyse this data to see which towns are working on their reporting?</p>
+<pre class="r"><code># first we&#39;ll get a list of top five towns by population for the latest year
+# next we join with yearlyCrashesPerTown
+data &lt;- population %&gt;%
+  filter(
+    YEAR == max(YEAR),
+    place != &#39;MASSACHUSETTS&#39;
+  ) %&gt;%
+  arrange(desc(population)) %&gt;%
+  select(City.Town = place) %&gt;%
+  head(5) %&gt;%
+  left_join(yearlyCrashesPerTown,by=&#39;City.Town&#39;) %&gt;%
+  mutate(DATE=as.Date(as.yearmon(YEAR)))
+
+ggplot(data,aes(DATE,crashes,group=City.Town)) +
+  geom_line(aes(color=City.Town==&#39;BOSTON&#39;)) +
+  geom_text(data=filter(data,YEAR==max(YEAR)),aes(DATE,crashes,label=City.Town),hjust=1,vjust=-0.5,size=3) +
+  ggtitle(str_c(&#39;Pedestrian crashes in top five largest towns, &#39;,min(data$YEAR),&#39;-&#39;,max(data$YEAR))) +
+  theme(legend.position=&#39;none&#39;) +
+  ylim(c(0,max(data$crashes)))</code></pre>
+<p><img src="07-30-2014_pedestrians_files/figure-html/unnamed-chunk-5.png" title="plot of chunk unnamed-chunk-5" alt="plot of chunk unnamed-chunk-5" width="1152" /></p>
+<p>Boston’s reporting inconsistency is striking.</p>
+<hr />
+<p>What if we normalize by population?</p>
+<pre class="r"><code># first we&#39;ll get a list of top five towns by population for the latest year
+# next we join with yearlyCrashesPerTown
+# next we join with population figures
+# finally we calculate rate = crashes / population
+data &lt;- population %&gt;%
+  filter(
+    YEAR == max(YEAR),
+    place != &#39;MASSACHUSETTS&#39;
+  ) %&gt;%
+  arrange(desc(population)) %&gt;%
+  select(City.Town = place) %&gt;%
+  head(5) %&gt;%
+  left_join(yearlyCrashesPerTown, by=&#39;City.Town&#39;) %&gt;%
+  mutate(place=City.Town) %&gt;% select(-City.Town) %&gt;%
+  left_join(population, by=c(&#39;YEAR&#39;, &#39;place&#39;)) %&gt;%
+  mutate(
+    rate=crashes/population * 10000,
+    DATE=as.Date(as.yearmon(YEAR))
+  )
+
+ggplot(data,aes(DATE,rate,group=place)) +
+  geom_line(aes(color=place==&#39;BOSTON&#39;)) +
+  geom_text(data=filter(data,YEAR==max(YEAR)),aes(DATE,rate,label=place),hjust=1,vjust=-0.5,size=3) +
+  ggtitle(str_c(&#39;Pedestrian crashes per capita in top five largest towns, &#39;,min(data$YEAR),&#39;-&#39;,max(data$YEAR))) +
+  ylab(&#39;crashes per 10,000&#39;) +
+  theme(legend.position=&#39;none&#39;) +
+  ylim(c(0,max(data$rate)))</code></pre>
+<p><img src="07-30-2014_pedestrians_files/figure-html/unnamed-chunk-6.png" title="plot of chunk unnamed-chunk-6" alt="plot of chunk unnamed-chunk-6" width="1152" /></p>
+<pre class="r"><code>knitr::kable(select(data, -DATE))</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">YEAR</th>
+<th align="right">crashes</th>
+<th align="left">place</th>
+<th align="right">population</th>
+<th align="right">rate</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">2001</td>
+<td align="right">26</td>
+<td align="left">BOSTON</td>
+<td align="right">598208</td>
+<td align="right">0.4346</td>
+</tr>
+<tr class="even">
+<td align="right">2002</td>
+<td align="right">183</td>
+<td align="left">BOSTON</td>
+<td align="right">599301</td>
+<td align="right">3.0536</td>
+</tr>
+<tr class="odd">
+<td align="right">2003</td>
+<td align="right">170</td>
+<td align="left">BOSTON</td>
+<td align="right">595864</td>
+<td align="right">2.8530</td>
+</tr>
+<tr class="even">
+<td align="right">2004</td>
+<td align="right">103</td>
+<td align="left">BOSTON</td>
+<td align="right">591166</td>
+<td align="right">1.7423</td>
+</tr>
+<tr class="odd">
+<td align="right">2005</td>
+<td align="right">71</td>
+<td align="left">BOSTON</td>
+<td align="right">587260</td>
+<td align="right">1.2090</td>
+</tr>
+<tr class="even">
+<td align="right">2006</td>
+<td align="right">63</td>
+<td align="left">BOSTON</td>
+<td align="right">587816</td>
+<td align="right">1.0718</td>
+</tr>
+<tr class="odd">
+<td align="right">2007</td>
+<td align="right">91</td>
+<td align="left">BOSTON</td>
+<td align="right">593136</td>
+<td align="right">1.5342</td>
+</tr>
+<tr class="even">
+<td align="right">2008</td>
+<td align="right">99</td>
+<td align="left">BOSTON</td>
+<td align="right">600685</td>
+<td align="right">1.6481</td>
+</tr>
+<tr class="odd">
+<td align="right">2009</td>
+<td align="right">143</td>
+<td align="left">BOSTON</td>
+<td align="right">612669</td>
+<td align="right">2.3340</td>
+</tr>
+<tr class="even">
+<td align="right">2010</td>
+<td align="right">324</td>
+<td align="left">BOSTON</td>
+<td align="right">618695</td>
+<td align="right">5.2368</td>
+</tr>
+<tr class="odd">
+<td align="right">2011</td>
+<td align="right">249</td>
+<td align="left">BOSTON</td>
+<td align="right">629064</td>
+<td align="right">3.9583</td>
+</tr>
+<tr class="even">
+<td align="right">2012</td>
+<td align="right">255</td>
+<td align="left">BOSTON</td>
+<td align="right">637845</td>
+<td align="right">3.9978</td>
+</tr>
+<tr class="odd">
+<td align="right">2001</td>
+<td align="right">28</td>
+<td align="left">WORCESTER</td>
+<td align="right">174535</td>
+<td align="right">1.6043</td>
+</tr>
+<tr class="even">
+<td align="right">2002</td>
+<td align="right">176</td>
+<td align="left">WORCESTER</td>
+<td align="right">175938</td>
+<td align="right">10.0035</td>
+</tr>
+<tr class="odd">
+<td align="right">2003</td>
+<td align="right">116</td>
+<td align="left">WORCESTER</td>
+<td align="right">177114</td>
+<td align="right">6.5495</td>
+</tr>
+<tr class="even">
+<td align="right">2004</td>
+<td align="right">126</td>
+<td align="left">WORCESTER</td>
+<td align="right">177721</td>
+<td align="right">7.0898</td>
+</tr>
+<tr class="odd">
+<td align="right">2005</td>
+<td align="right">154</td>
+<td align="left">WORCESTER</td>
+<td align="right">178242</td>
+<td align="right">8.6399</td>
+</tr>
+<tr class="even">
+<td align="right">2006</td>
+<td align="right">158</td>
+<td align="left">WORCESTER</td>
+<td align="right">178990</td>
+<td align="right">8.8273</td>
+</tr>
+<tr class="odd">
+<td align="right">2007</td>
+<td align="right">155</td>
+<td align="left">WORCESTER</td>
+<td align="right">179409</td>
+<td align="right">8.6395</td>
+</tr>
+<tr class="even">
+<td align="right">2008</td>
+<td align="right">154</td>
+<td align="left">WORCESTER</td>
+<td align="right">179696</td>
+<td align="right">8.5700</td>
+</tr>
+<tr class="odd">
+<td align="right">2009</td>
+<td align="right">143</td>
+<td align="left">WORCESTER</td>
+<td align="right">180539</td>
+<td align="right">7.9207</td>
+</tr>
+<tr class="even">
+<td align="right">2010</td>
+<td align="right">174</td>
+<td align="left">WORCESTER</td>
+<td align="right">181264</td>
+<td align="right">9.5993</td>
+</tr>
+<tr class="odd">
+<td align="right">2011</td>
+<td align="right">177</td>
+<td align="left">WORCESTER</td>
+<td align="right">182331</td>
+<td align="right">9.7076</td>
+</tr>
+<tr class="even">
+<td align="right">2012</td>
+<td align="right">150</td>
+<td align="left">WORCESTER</td>
+<td align="right">182312</td>
+<td align="right">8.2277</td>
+</tr>
+<tr class="odd">
+<td align="right">2001</td>
+<td align="right">1</td>
+<td align="left">SPRINGFIELD</td>
+<td align="right">151894</td>
+<td align="right">0.0658</td>
+</tr>
+<tr class="even">
+<td align="right">2002</td>
+<td align="right">8</td>
+<td align="left">SPRINGFIELD</td>
+<td align="right">152510</td>
+<td align="right">0.5246</td>
+</tr>
+<tr class="odd">
+<td align="right">2003</td>
+<td align="right">9</td>
+<td align="left">SPRINGFIELD</td>
+<td align="right">153012</td>
+<td align="right">0.5882</td>
+</tr>
+<tr class="even">
+<td align="right">2004</td>
+<td align="right">4</td>
+<td align="left">SPRINGFIELD</td>
+<td align="right">152936</td>
+<td align="right">0.2615</td>
+</tr>
+<tr class="odd">
+<td align="right">2005</td>
+<td align="right">8</td>
+<td align="left">SPRINGFIELD</td>
+<td align="right">152925</td>
+<td align="right">0.5231</td>
+</tr>
+<tr class="even">
+<td align="right">2006</td>
+<td align="right">3</td>
+<td align="left">SPRINGFIELD</td>
+<td align="right">152911</td>
+<td align="right">0.1962</td>
+</tr>
+<tr class="odd">
+<td align="right">2007</td>
+<td align="right">4</td>
+<td align="left">SPRINGFIELD</td>
+<td align="right">152799</td>
+<td align="right">0.2618</td>
+</tr>
+<tr class="even">
+<td align="right">2008</td>
+<td align="right">5</td>
+<td align="left">SPRINGFIELD</td>
+<td align="right">152857</td>
+<td align="right">0.3271</td>
+</tr>
+<tr class="odd">
+<td align="right">2009</td>
+<td align="right">3</td>
+<td align="left">SPRINGFIELD</td>
+<td align="right">152934</td>
+<td align="right">0.1962</td>
+</tr>
+<tr class="even">
+<td align="right">2010</td>
+<td align="right">3</td>
+<td align="left">SPRINGFIELD</td>
+<td align="right">153122</td>
+<td align="right">0.1959</td>
+</tr>
+<tr class="odd">
+<td align="right">2011</td>
+<td align="right">184</td>
+<td align="left">SPRINGFIELD</td>
+<td align="right">153581</td>
+<td align="right">11.9806</td>
+</tr>
+<tr class="even">
+<td align="right">2012</td>
+<td align="right">182</td>
+<td align="left">SPRINGFIELD</td>
+<td align="right">153489</td>
+<td align="right">11.8575</td>
+</tr>
+<tr class="odd">
+<td align="right">2001</td>
+<td align="right">24</td>
+<td align="left">LOWELL</td>
+<td align="right">105449</td>
+<td align="right">2.2760</td>
+</tr>
+<tr class="even">
+<td align="right">2002</td>
+<td align="right">113</td>
+<td align="left">LOWELL</td>
+<td align="right">105003</td>
+<td align="right">10.7616</td>
+</tr>
+<tr class="odd">
+<td align="right">2003</td>
+<td align="right">109</td>
+<td align="left">LOWELL</td>
+<td align="right">104565</td>
+<td align="right">10.4241</td>
+</tr>
+<tr class="even">
+<td align="right">2004</td>
+<td align="right">107</td>
+<td align="left">LOWELL</td>
+<td align="right">104098</td>
+<td align="right">10.2788</td>
+</tr>
+<tr class="odd">
+<td align="right">2005</td>
+<td align="right">112</td>
+<td align="left">LOWELL</td>
+<td align="right">103668</td>
+<td align="right">10.8037</td>
+</tr>
+<tr class="even">
+<td align="right">2006</td>
+<td align="right">117</td>
+<td align="left">LOWELL</td>
+<td align="right">103673</td>
+<td align="right">11.2855</td>
+</tr>
+<tr class="odd">
+<td align="right">2007</td>
+<td align="right">105</td>
+<td align="left">LOWELL</td>
+<td align="right">104019</td>
+<td align="right">10.0943</td>
+</tr>
+<tr class="even">
+<td align="right">2008</td>
+<td align="right">80</td>
+<td align="left">LOWELL</td>
+<td align="right">104887</td>
+<td align="right">7.6273</td>
+</tr>
+<tr class="odd">
+<td align="right">2009</td>
+<td align="right">86</td>
+<td align="left">LOWELL</td>
+<td align="right">106024</td>
+<td align="right">8.1114</td>
+</tr>
+<tr class="even">
+<td align="right">2010</td>
+<td align="right">109</td>
+<td align="left">LOWELL</td>
+<td align="right">106725</td>
+<td align="right">10.2132</td>
+</tr>
+<tr class="odd">
+<td align="right">2011</td>
+<td align="right">95</td>
+<td align="left">LOWELL</td>
+<td align="right">107433</td>
+<td align="right">8.8427</td>
+</tr>
+<tr class="even">
+<td align="right">2012</td>
+<td align="right">107</td>
+<td align="left">LOWELL</td>
+<td align="right">108335</td>
+<td align="right">9.8768</td>
+</tr>
+<tr class="odd">
+<td align="right">2001</td>
+<td align="right">14</td>
+<td align="left">CAMBRIDGE</td>
+<td align="right">102048</td>
+<td align="right">1.3719</td>
+</tr>
+<tr class="even">
+<td align="right">2002</td>
+<td align="right">123</td>
+<td align="left">CAMBRIDGE</td>
+<td align="right">101959</td>
+<td align="right">12.0637</td>
+</tr>
+<tr class="odd">
+<td align="right">2003</td>
+<td align="right">83</td>
+<td align="left">CAMBRIDGE</td>
+<td align="right">101727</td>
+<td align="right">8.1591</td>
+</tr>
+<tr class="even">
+<td align="right">2004</td>
+<td align="right">94</td>
+<td align="left">CAMBRIDGE</td>
+<td align="right">101542</td>
+<td align="right">9.2573</td>
+</tr>
+<tr class="odd">
+<td align="right">2005</td>
+<td align="right">114</td>
+<td align="left">CAMBRIDGE</td>
+<td align="right">101440</td>
+<td align="right">11.2382</td>
+</tr>
+<tr class="even">
+<td align="right">2006</td>
+<td align="right">92</td>
+<td align="left">CAMBRIDGE</td>
+<td align="right">101876</td>
+<td align="right">9.0306</td>
+</tr>
+<tr class="odd">
+<td align="right">2007</td>
+<td align="right">86</td>
+<td align="left">CAMBRIDGE</td>
+<td align="right">102313</td>
+<td align="right">8.4056</td>
+</tr>
+<tr class="even">
+<td align="right">2008</td>
+<td align="right">102</td>
+<td align="left">CAMBRIDGE</td>
+<td align="right">103298</td>
+<td align="right">9.8743</td>
+</tr>
+<tr class="odd">
+<td align="right">2009</td>
+<td align="right">84</td>
+<td align="left">CAMBRIDGE</td>
+<td align="right">104665</td>
+<td align="right">8.0256</td>
+</tr>
+<tr class="even">
+<td align="right">2010</td>
+<td align="right">103</td>
+<td align="left">CAMBRIDGE</td>
+<td align="right">105340</td>
+<td align="right">9.7779</td>
+</tr>
+<tr class="odd">
+<td align="right">2011</td>
+<td align="right">117</td>
+<td align="left">CAMBRIDGE</td>
+<td align="right">105631</td>
+<td align="right">11.0763</td>
+</tr>
+<tr class="even">
+<td align="right">2012</td>
+<td align="right">109</td>
+<td align="left">CAMBRIDGE</td>
+<td align="right">106172</td>
+<td align="right">10.2664</td>
+</tr>
+</tbody>
+</table>
+<p>This graph shows that Boston’s reported crash rate is quite low. We could probably make a case that Boston has a substantial amount of external foot traffic - people that don’t live in the city but work in the city. If we were to include that number, Boston’s crash rate would go down even lower. This graph also shows how Springfield’s significantly increased its reporting in 2010.</p>
+<hr />
+<p>What about other towns?</p>
+<pre class="r"><code># only look at towns with more than 50 crashes total
+data &lt;- towns %&gt;%
+  filter(crashes&gt;50) %&gt;%
+  arrange(desc(crashes)) %&gt;%
+  select(City.Town=TOWN) %&gt;%
+  left_join(yearlyCrashesPerTown,by=&#39;City.Town&#39;) %&gt;%
+  mutate(DATE=as.Date(as.yearmon(YEAR)))
+
+ggplot(data,aes(DATE,crashes,group=City.Town)) +
+  geom_line() +
+  ggtitle(str_c(&#39;Pedestrian crashes in towns with greater than 50 crashes in period &#39;,min(data$YEAR),&#39;-&#39;,max(data$YEAR),&#39;. Y-scale is relative to each town.&#39;)) +
+  facet_wrap(~City.Town,scales=&#39;free&#39;,ncol=8) +
+  theme(
+    axis.ticks=element_blank(),
+    axis.text=element_blank(),
+    panel.grid = element_blank()
+  )</code></pre>
+<p><img src="07-30-2014_pedestrians_files/figure-html/unnamed-chunk-7.png" title="plot of chunk unnamed-chunk-7" alt="plot of chunk unnamed-chunk-7" width="1152" /></p>
+<p>It seems that Barnstable and Springfield didn’t report many pedestrian accidents prior to 2010.</p>
+<hr />
+<p>One final graph - let’s look at the distribution of reported crashes per town over time.</p>
+<pre class="r"><code>data &lt;- towns %&gt;%
+  arrange(desc(crashes)) %&gt;%
+  select(City.Town=TOWN) %&gt;%
+  left_join(yearlyCrashesPerTown,by=&#39;City.Town&#39;) %&gt;%
+  mutate(DATE=as.Date(as.yearmon(YEAR)))
+
+ggplot(data,aes(crashes,group=YEAR)) +
+  geom_histogram() +
+  facet_wrap(~YEAR,nrow=3) +
+  ggtitle(str_c(&#39;Distribution of pedestrian crashes per town, &#39;,min(data$YEAR),&#39;-&#39;,max(data$YEAR)))</code></pre>
+<p><img src="07-30-2014_pedestrians_files/figure-html/unnamed-chunk-8.png" title="plot of chunk unnamed-chunk-8" alt="plot of chunk unnamed-chunk-8" width="1152" /></p>
+<p>That’s not particularly useful.</p>
+<pre class="r"><code>data &lt;- towns %&gt;%
+  arrange(desc(crashes)) %&gt;%
+  select(City.Town=TOWN) %&gt;%
+  left_join(yearlyCrashesPerTown,by=&#39;City.Town&#39;) %&gt;%
+  filter(!is.na(YEAR)) %&gt;%
+  mutate(DATE=as.Date(as.yearmon(YEAR)))
+
+ggplot(data,aes(DATE,crashes,group=DATE)) +
+  geom_boxplot() +
+  ggtitle(str_c(&#39;Distribution of pedestrian crashes per town, &#39;,min(data$YEAR),&#39;-&#39;,max(data$YEAR)))</code></pre>
+<p><img src="07-30-2014_pedestrians_files/figure-html/unnamed-chunk-9.png" title="plot of chunk unnamed-chunk-9" alt="plot of chunk unnamed-chunk-9" width="1152" /></p>
+<p>Interesting, but not very revealing.</p>
+<hr />
+<p>How many pedestrian accidents (involving injuries) in Boston since 2010?</p>
+<pre class="r"><code># create a new column, SEVERITY, that creates three groups: fatal injury, non-fatal injury, other
+data &lt;- crashes %&gt;%
+  mutate(
+    YEAR = year(DATE),
+    SEVERITY = ifelse(grepl(&#39;fatal injury&#39;,tolower(as.character(Crash.Seve))), as.character(Crash.Seve), &#39;Other&#39;)
+  ) %&gt;%
+  filter(
+    City.Town == &#39;BOSTON&#39;,
+    YEAR &gt;= 2010
+  ) %&gt;%
+  group_by(YEAR,SEVERITY) %&gt;%
+  summarise(ACCIDENTS = n())
+
+knitr::kable(data)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">YEAR</th>
+<th align="left">SEVERITY</th>
+<th align="right">ACCIDENTS</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">2010</td>
+<td align="left">Fatal injury</td>
+<td align="right">7</td>
+</tr>
+<tr class="even">
+<td align="right">2010</td>
+<td align="left">Non-fatal injury</td>
+<td align="right">189</td>
+</tr>
+<tr class="odd">
+<td align="right">2010</td>
+<td align="left">Other</td>
+<td align="right">128</td>
+</tr>
+<tr class="even">
+<td align="right">2011</td>
+<td align="left">Fatal injury</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="right">2011</td>
+<td align="left">Non-fatal injury</td>
+<td align="right">158</td>
+</tr>
+<tr class="even">
+<td align="right">2011</td>
+<td align="left">Other</td>
+<td align="right">88</td>
+</tr>
+<tr class="odd">
+<td align="right">2012</td>
+<td align="left">Fatal injury</td>
+<td align="right">4</td>
+</tr>
+<tr class="even">
+<td align="right">2012</td>
+<td align="left">Non-fatal injury</td>
+<td align="right">168</td>
+</tr>
+<tr class="odd">
+<td align="right">2012</td>
+<td align="left">Other</td>
+<td align="right">83</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+$(document).ready(function () {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+});
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://c328740.ssl.cf1.rackcdn.com/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

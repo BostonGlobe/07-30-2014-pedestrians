@@ -18,7 +18,6 @@
 				".jshintrc",
 				"package.json",
 				"ggmapTemp.png",
-				"07-30-2014_pedestrians.html"
 			],
 			"folder_exclude_patterns":
 			[
@@ -26,7 +25,6 @@
 				".sass-cache",
 				"node_modules",
 				"parts",
-				"07-30-2014_pedestrians_files"
 			],
 			"follow_symlinks": true,
 			"path": "."

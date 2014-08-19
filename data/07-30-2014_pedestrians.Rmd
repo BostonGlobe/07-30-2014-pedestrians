@@ -73,6 +73,8 @@ Let's explore the question: are pedestrian crashes increasing? We'll be working 
 - town shapefile from [MassGIS](http://www.mass.gov/anf/research-and-tech/it-serv-and-support/application-serv/office-of-geographic-information-massgis/datalayers/towns.html)
 - town population estimates [from US Census Bureau](https://www.census.gov/popest/data/datasets.html)
 
+NOTE: the following analysis was helpful during the making of [Mass. pedestrian crashes](http://www.bostonglobe.com/2014/08/19/mass-pedestrian-crashes/S93EfexbXWvj7fq8Z2kXEJ/story.html) and [Nestor Ramos](https://twitter.com/NestorARamos)'s story, [Most Boston pedestrian accidents go unreported](http://www.bostonglobe.com/metro/2014/08/18/some-boston-pedestrian-accidents-aren-reported-state/oY53CQ9ijoaPNF3gfIAQzL/story.html).
+
 ### Setup
 
 ```{r, results='hide', warning=FALSE, message=FALSE}
@@ -271,7 +273,7 @@ ggplot(data,aes(DATE,crashes,group=City.Town)) +
   )
 ```
 
-It seems that Barnstable and Springfield didn't report pedestrian accidents prior to 2010.
+It seems that Barnstable and Springfield didn't report many pedestrian accidents prior to 2010.
 
 ***
 
@@ -299,6 +301,7 @@ data <- towns %>%
   arrange(desc(crashes)) %>%
   select(City.Town=TOWN) %>%
   left_join(yearlyCrashesPerTown,by='City.Town') %>%
+  filter(!is.na(YEAR)) %>%
   mutate(DATE=as.Date(as.yearmon(YEAR)))
 
 ggplot(data,aes(DATE,crashes,group=DATE)) +
