@@ -1,6 +1,6 @@
 # [07-30-2014-pedestrians](http://www.bostonglobe.com/2014/08/19/mass-pedestrian-crashes/S93EfexbXWvj7fq8Z2kXEJ/story.html)
 
-![Mass. pedestrian crashes](https://cloud.githubusercontent.com/assets/370976/3969638/a17ab144-27c2-11e4-8973-9bfc831e93c7.png)
+![Mass. pedestrian crashes](https://cloud.githubusercontent.com/assets/370976/3969668/e5601ec6-27c2-11e4-9eaa-3f9696e42ced.png)
 
 This graphic was generated with [generator-globegraphic](https://github.com/BostonGlobe/generator-globegraphic). Consults its [README](https://github.com/BostonGlobe/generator-globegraphic) for more information.
 
