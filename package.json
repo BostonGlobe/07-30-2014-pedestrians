@@ -4,7 +4,7 @@
   "dependencies": {},
   "devDependencies": {
     "cheerio": "0.13.1",
-    "express": "3.4.8",
+    "express": ">=3.11.0",
     "gulp": "3.6.0",
     "gulp-concat": "2.2.0",
     "gulp-csso": "0.2.6",
